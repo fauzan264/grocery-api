@@ -14,3 +14,192 @@ datasource db {
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
+
+model User {
+  id           String   @id @default(uuid()) @db.VarChar(36)
+  fullName     String   @map("full_name") @db.VarChar(100)
+  dateOfBirth  DateTime @map("date_of_birth") @db.Date
+  email        String   @unique @db.VarChar(100)
+  password     String   @db.VarChar(100)
+  phoneNumber  String   @unique @map("phone_number") @db.VarChar(15)
+  photoProfile String   @map("photo_profile") @db.VarChar(100)
+  verified     Boolean  @default(false)
+
+  user_role UserRole
+  status    UserStatus
+
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+  deletedAt    DateTime?      @map("deleted_at")
+  UserStore    UserStore[]
+  UserAddress  UserAddress?
+  Order        Order[]
+  ShoppingCart ShoppingCart[]
+
+  @@map("users")
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN_STORE
+  CUSTOMER
+}
+
+model UserAddress {
+  id          String  @id @default(uuid()) @db.VarChar(36)
+  city        String  @db.VarChar(100)
+  province    String  @db.VarChar(100)
+  subdistrict String  @db.VarChar(100)
+  address     String
+  latitude    Decimal @db.Decimal(9, 6)
+  longitude   Decimal @db.Decimal(9, 6)
+  userId      String  @unique @map("user_id") @db.VarChar(36)
+
+  user User @relation(fields: [userId], references: [id])
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@map("user_addresses")
+}
+
+model Store {
+  id          String      @id @default(uuid()) @db.VarChar(36)
+  name        String      @db.VarChar(100)
+  logo        String      @db.VarChar(100)
+  description String
+  status      StoreStatus
+  city        String      @db.VarChar(100)
+  province    String      @db.VarChar(100)
+  subdistrict String      @db.VarChar(100)
+  address     String
+  latitude    Decimal     @db.Decimal(9, 6)
+  longitude   Decimal     @db.Decimal(9, 6)
+
+  UserStore UserStore[]
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@map("stores")
+}
+
+enum StoreStatus {
+  ACTIVE
+  INACTIVE
+}
+
+model UserStore {
+  userId  String
+  storeId String
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Restrict)
+  store Store @relation(fields: [storeId], references: [id], onDelete: Restrict)
+
+  @@id([userId, storeId])
+  @@map("user_stores")
+}
+
+model Order {
+  id           String @id @default(uuid()) @db.VarChar(36)
+  userId       String @map("user_id") @db.VarChar(36)
+  totalPrice   Int    @map("total_price")
+  discount     Int
+  finalPrice   Int    @map("final_price")
+  status       String
+  paymentProof String @map("payment_proof")
+
+  user User @relation(fields: [userId], references: [id])
+
+  createdAt  DateTime     @default(now()) @map("created_at")
+  updatedAt  DateTime     @updatedAt @map("updated_at")
+  deletedAt  DateTime?    @map("deleted_at")
+  OrderItems OrderItems[]
+  Shipment   Shipment?
+
+  @@map("orders")
+}
+
+model OrderItems {
+  id        String @id @default(uuid()) @db.VarChar(36)
+  orderId   String @map("order_id") @db.VarChar(36)
+  productId String @map("product_id") @db.VarChar(36)
+  quantity  Int
+  price     Int
+  subTotal  Int    @map("sub_total")
+
+  order Order @relation(fields: [orderId], references: [id])
+  // product Product @relation(fields: [productId], references: [id])
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@map("order_items")
+}
+
+enum OrderStatus {
+  WAITING_FOR_PAYMENT
+  WAITING_CONFIRMATION_PAYMENT
+  IN_PROCESS
+  DELIVERED
+  ORDER_CONFIRMATION
+  CANCELLED
+}
+
+model Shipment {
+  id             String @id @default(uuid()) @db.VarChar(36)
+  orderId        String @unique @map("order_id") @db.VarChar(36)
+  trackingNumber String @unique @map("tracking_number") @db.VarChar(50)
+  courier        String @db.VarChar(10)
+  service        String @db.VarChar(30)
+  shippingCost   Int    @map("shipping_cost")
+  shippingDays   String @map("shipping_days") @db.VarChar(30)
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@map("shipments")
+}
+
+model ShoppingCart {
+  id       String  @id @default(uuid()) @db.VarChar(36)
+  userId   String  @map("user_id") @db.VarChar(36)
+  isActive Boolean @default(true) @map("is_active")
+
+  user User @relation(fields: [userId], references: [id])
+
+  createdAt        DateTime           @default(now()) @map("created_at")
+  updatedAt        DateTime           @updatedAt @map("updated_at")
+  deletedAt        DateTime?          @map("deleted_at")
+  ShoppingCartItem ShoppingCartItem[]
+
+  @@map("shopping_carts")
+}
+
+model ShoppingCartItem {
+  id        String @id @default(uuid()) @db.VarChar(36)
+  cartId    String @map("cart_id") @db.VarChar(36)
+  productId String @map("product_id") @db.VarChar(36)
+  quantity  Int
+  price     Int
+  subTotal  Int    @map("sub_total")
+
+  cart ShoppingCart @relation(fields: [cartId], references: [id])
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@map("shopping_cart_items")
+}

@@ -1,21 +1,23 @@
-import expres, { Express, Request, Response, NextFunction } from "express";
-import cors from "cors";
+import express from 'express';
+import helmet from 'helmet';
+import cors from 'cors';
+import bodyParser from 'body-parser';
+import adminRoutes from './routes/admin.routes';
+import authRoutes from './routes/auth.routes'; // implement login route there
 
-const app: Express = expres();
-app.use(expres.json());
-app.use(cors());
-const port = 4000;
+const app = express();
+app.use(helmet());
+app.use(cors({ origin: ['http://localhost:3000'] })); // adjust as needed
+app.use(bodyParser.json());
 
-// app.use(mainRouter)
+app.use('/api/auth', authRoutes);
+app.use('/api/admin', adminRoutes);
 
-app.use((error: any, req: Request, res: Response, next: NextFunction) => {
-  console.log(error);
-  res.status(500).json({
-    success: false,
-    message: error?.isExpose ? error?.message : "Internal server error",
-  });
+// Error handler (basic)
+app.use((err: any, req: any, res: any, next: any) => {
+  console.error(err);
+  res.status(err.status || 500).json({ error: err.message || 'Internal server error' });
 });
 
-app.listen(port, () => {
-  console.log(`⚡️ Server is running on port ${port}`);
-});
+const PORT = process.env.PORT || 4000;
+app.listen(PORT, () => console.log(`⚡️ Server is running on port ${PORT}`));

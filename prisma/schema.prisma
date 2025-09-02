@@ -14,3 +14,326 @@ datasource db {
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
+
+model User {
+  id           String   @id @default(uuid()) @db.VarChar(36)
+  fullName     String   @map("full_name") @db.VarChar(100)
+  dateOfBirth  DateTime @map("date_of_birth") @db.Date
+  email        String   @unique @db.VarChar(100)
+  password     String   @db.VarChar(100)
+  phoneNumber  String   @unique @map("phone_number") @db.VarChar(15)
+  photoProfile String   @map("photo_profile") @db.VarChar(100)
+  verified     Boolean  @default(false)
+
+  user_role UserRole
+  status    UserStatus
+
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+  deletedAt    DateTime?      @map("deleted_at")
+  UserStore    UserStore[]
+  UserAddress  UserAddress?
+  Order        Order[]
+  ShoppingCart ShoppingCart[]
+
+  @@map("users")
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN_STORE
+  CUSTOMER
+}
+
+model UserAddress {
+  id          String  @id @default(uuid()) @db.VarChar(36)
+  city        String  @db.VarChar(100)
+  province    String  @db.VarChar(100)
+  subdistrict String  @db.VarChar(100)
+  address     String
+  latitude    Decimal @db.Decimal(9, 6)
+  longitude   Decimal @db.Decimal(9, 6)
+  userId      String  @unique @map("user_id") @db.VarChar(36)
+
+  user User @relation(fields: [userId], references: [id])
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@map("user_addresses")
+}
+
+model Store {
+  id          String      @id @default(uuid()) @db.VarChar(36)
+  name        String      @db.VarChar(100)
+  logo        String      @db.VarChar(100)
+  description String
+  status      StoreStatus
+  city        String      @db.VarChar(100)
+  province    String      @db.VarChar(100)
+  subdistrict String      @db.VarChar(100)
+  address     String
+  latitude    Decimal     @db.Decimal(9, 6)
+  longitude   Decimal     @db.Decimal(9, 6)
+
+  UserStore UserStore[]
+  stocks    Stock[]
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@map("stores")
+}
+
+enum StoreStatus {
+  ACTIVE
+  INACTIVE
+}
+
+model UserStore {
+  userId  String
+  storeId String
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Restrict)
+  store Store @relation(fields: [storeId], references: [id], onDelete: Restrict)
+
+  @@id([userId, storeId])
+  @@map("user_stores")
+}
+
+model Order {
+  id           String      @id @default(uuid()) @db.VarChar(36)
+  userId       String      @map("user_id") @db.VarChar(36)
+  totalPrice   Int         @map("total_price")
+  discount     Int
+  finalPrice   Int         @map("final_price")
+  status       OrderStatus
+  paymentProof String      @map("payment_proof")
+
+  user User @relation(fields: [userId], references: [id])
+
+  createdAt  DateTime     @default(now()) @map("created_at")
+  updatedAt  DateTime     @updatedAt @map("updated_at")
+  deletedAt  DateTime?    @map("deleted_at")
+  OrderItems OrderItems[]
+  Shipment   Shipment?
+
+  @@map("orders")
+}
+
+model OrderItems {
+  id        String @id @default(uuid()) @db.VarChar(36)
+  orderId   String @map("order_id") @db.VarChar(36)
+  productId String @map("product_id") @db.VarChar(36)
+  quantity  Int
+  price     Int
+  subTotal  Int    @map("sub_total")
+
+  order Order @relation(fields: [orderId], references: [id])
+  // product Product @relation(fields: [productId], references: [id])
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@map("order_items")
+}
+
+enum OrderStatus {
+  WAITING_FOR_PAYMENT
+  WAITING_CONFIRMATION_PAYMENT
+  IN_PROCESS
+  DELIVERED
+  ORDER_CONFIRMATION
+  CANCELLED
+}
+
+model Shipment {
+  id             String @id @default(uuid()) @db.VarChar(36)
+  orderId        String @unique @map("order_id") @db.VarChar(36)
+  trackingNumber String @unique @map("tracking_number") @db.VarChar(50)
+  courier        String @db.VarChar(10)
+  service        String @db.VarChar(30)
+  shippingCost   Int    @map("shipping_cost")
+  shippingDays   String @map("shipping_days") @db.VarChar(30)
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@map("shipments")
+}
+
+model ShoppingCart {
+  id       String  @id @default(uuid()) @db.VarChar(36)
+  userId   String  @map("user_id") @db.VarChar(36)
+  isActive Boolean @default(true) @map("is_active")
+
+  user User @relation(fields: [userId], references: [id])
+
+  createdAt        DateTime           @default(now()) @map("created_at")
+  updatedAt        DateTime           @updatedAt @map("updated_at")
+  deletedAt        DateTime?          @map("deleted_at")
+  ShoppingCartItem ShoppingCartItem[]
+
+  @@map("shopping_carts")
+}
+
+model ShoppingCartItem {
+  id        String @id @default(uuid()) @db.VarChar(36)
+  cartId    String @map("cart_id") @db.VarChar(36)
+  productId String @map("product_id") @db.VarChar(36)
+  quantity  Int
+  price     Int
+  subTotal  Int    @map("sub_total")
+
+  cart ShoppingCart @relation(fields: [cartId], references: [id])
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@map("shopping_cart_items")
+}
+
+model Category {
+  id       String    @id @default(uuid()) @db.VarChar(36)
+  name     String    @unique @db.VarChar(100)
+  slug     String?   @unique @db.VarChar(150)
+  products Product[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("categories")
+}
+
+model Product {
+  id          String         @id @default(uuid()) @db.VarChar(36)
+  name        String         @unique @db.VarChar(200) // no duplicate product name (global)
+  sku         String?        @unique @db.VarChar(50)
+  description String?
+  price       Int // price in smallest currency unit (IDR)
+  isActive    Boolean        @default(true) @map("is_active")
+  categoryId  String?        @map("category_id") @db.VarChar(36)
+  category    Category?      @relation(fields: [categoryId], references: [id])
+  images      ProductImage[]
+  stocks      Stock[]
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+  deletedAt   DateTime?      @map("deleted_at")
+
+  ProductDiscounts ProductDiscount[]
+
+  @@map("products")
+}
+
+model ProductImage {
+  id        String  @id @default(uuid()) @db.VarChar(36)
+  productId String  @map("product_id") @db.VarChar(36)
+  url       String  @db.VarChar(255)
+  altText   String? @map("alt_text") @db.VarChar(255)
+  isPrimary Boolean @default(false) @map("is_primary")
+
+  product Product @relation(fields: [productId], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("product_images")
+}
+
+model Stock {
+  id        String @id @default(uuid()) @db.VarChar(36)
+  productId String @map("product_id") @db.VarChar(36)
+  storeId   String @map("store_id") @db.VarChar(36)
+  quantity  Int    @default(0)
+
+  product Product @relation(fields: [productId], references: [id])
+  store   Store   @relation(fields: [storeId], references: [id])
+
+  journals StockJournal[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([productId, storeId])
+  @@map("stocks")
+}
+
+enum StockChangeType {
+  INCREASE
+  DECREASE
+  ADJUSTMENT
+}
+
+model StockJournal {
+  id           String          @id @default(uuid()) @db.VarChar(36)
+  stockId      String          @map("stock_id") @db.VarChar(36)
+  changeType   StockChangeType @map("change_type")
+  quantityOld  Int             @map("quantity_old")
+  quantityDiff Int             @map("quantity_diff")
+  quantityNew  Int             @map("quantity_new")
+  reason       String?
+  createdBy    String?         @map("created_by") @db.VarChar(36) // user who made change (admin)
+  createdAt    DateTime        @default(now()) @map("created_at")
+
+  stock Stock @relation(fields: [stockId], references: [id])
+
+  @@map("stock_journals")
+}
+
+/**
+ * Discount rules:
+ * - discountType: MANUAL (applied manually to product)
+ * MIN_SPEND (minSpend must be met)
+ * BUY_X_GET_Y (buyQuantity + freeQuantity)
+ * - value: integer amount or percent depending on isPercentage flag
+ */
+enum DiscountType {
+  MANUAL
+  MIN_SPEND
+  BUY_X_GET_Y
+}
+
+model Discount {
+  id           String       @id @default(uuid()) @db.VarChar(36)
+  code         String?      @unique @db.VarChar(100)
+  name         String       @db.VarChar(150)
+  discountType DiscountType @map("discount_type")
+  isPercentage Boolean      @default(false) @map("is_percentage")
+  value        Int // if isPercentage = true -> 10 = 10% ; if false -> nominal value in currency unit
+  minSpend     Int?         @map("min_spend") // for MIN_SPEND
+  buyQuantity  Int?         @map("buy_quantity") // for BUY_X_GET_Y
+  freeQuantity Int?         @map("free_quantity") // for BUY_X_GET_Y
+  isActive     Boolean      @default(true) @map("is_active")
+
+  ProductDiscounts ProductDiscount[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("discounts")
+}
+
+model ProductDiscount {
+  id         String @id @default(uuid()) @db.VarChar(36)
+  productId  String @map("product_id") @db.VarChar(36)
+  discountId String @map("discount_id") @db.VarChar(36)
+
+  product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  discount Discount @relation(fields: [discountId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([productId, discountId])
+  @@map("product_discounts")
+}

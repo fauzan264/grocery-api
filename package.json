@@ -6,7 +6,9 @@
     "dev": "nodemon",
     "build": "tsc",
     "start": "node dist/index.js",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "seed": "ts-node --transpile-only ./src/prisma/seed.ts",
+    "prisma:generate": "prisma generate"
   },
   "keywords": [],
   "author": "",
@@ -17,7 +19,6 @@
     "@types/bcrypt": "^6.0.0",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
-    "@types/jsonwebtoken": "^9.0.10",
     "@types/multer": "^2.0.0",
     "@types/node": "^24.1.0",
     "@types/nodemailer": "^6.4.17",
@@ -26,15 +27,18 @@
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "handlebars": "^4.7.8",
+    "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
     "luxon": "^3.7.1",
     "multer": "^2.0.2",
     "node-cron": "^4.2.1",
     "nodemailer": "^7.0.5",
+    "react-helmet-async": "^2.0.5",
     "snakecase-keys": "^8.1.0",
     "uuid": "^11.1.0"
   },
   "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/luxon": "^3.7.0",
     "nodemon": "^3.1.10",
     "prisma": "^6.15.0",

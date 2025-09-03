@@ -2,6 +2,8 @@ import { Request, Response } from "express";
 import {
   authLoginService,
   authRegisterService,
+  authRequestResetPasswordService,
+  authResetPasswordService,
   authVerificationEmailService,
 } from "../services/auth.service";
 
@@ -60,5 +62,34 @@ export const authLoginController = async (req: Request, res: Response) => {
     success: true,
     message: `Login user successful`,
     data: { token, full_name, role },
+  });
+};
+
+export const authRequestResetPasswordController = async (
+  req: Request,
+  res: Response
+) => {
+  const { email } = req.body;
+
+  await authRequestResetPasswordService({ email });
+
+  res.status(200).json({
+    success: true,
+    message: "Password reset link has been sent to your email address.",
+  });
+};
+
+export const authResetPasswordController = async (
+  req: Request,
+  res: Response
+) => {
+  const { password } = req.body;
+  const { userId } = res.locals.payload;
+
+  await authResetPasswordService({ id: userId, password });
+
+  res.status(200).json({
+    success: true,
+    message: "Password updated successfully",
   });
 };

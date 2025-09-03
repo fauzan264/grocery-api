@@ -158,3 +158,66 @@ export const authLoginService = async ({
     role: checkUserByEmail?.userRole,
   };
 };
+
+export const authRequestResetPasswordService = async ({
+  email,
+}: Pick<User, "email">) => {
+  const checkUserByEmail = await prisma.user.findUnique({
+    where: {
+      email,
+    },
+  });
+
+  if (!checkUserByEmail) {
+    throw { message: `Email is not registered`, isExpose: true };
+  }
+
+  const token = await jwtSign(
+    { userId: checkUserByEmail?.id },
+    process.env.JWT_SECRET_KEY!,
+    { algorithm: "HS256" }
+  );
+
+  const templateHtml = fs.readFileSync(
+    "src/public/reset-password.html",
+    "utf-8"
+  );
+  const compiledTemplateHtml = Handlebars.compile(templateHtml);
+
+  const resultTemplateHtml = compiledTemplateHtml({
+    fullName: checkUserByEmail.fullName,
+    resetLinkPassword: `${process.env.LINK_RESET_PASSWORD}/${token}`,
+  });
+
+  await transporter.sendMail({
+    to: email,
+    subject: "Reset your password",
+    html: resultTemplateHtml,
+  });
+};
+
+export const authResetPasswordService = async ({
+  id,
+  password,
+}: Pick<User, "id" | "password">) => {
+  const checkUserById = await prisma.user.findUnique({
+    where: {
+      id,
+    },
+  });
+
+  if (!checkUserById) {
+    throw { message: "User not found", isExpose: true };
+  }
+
+  if (!password) {
+    throw { message: "Password is required", isExpose: true };
+  }
+
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  await prisma.user.update({
+    data: { password: hashedPassword },
+    where: { id },
+  });
+};

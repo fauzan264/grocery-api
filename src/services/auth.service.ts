@@ -112,3 +112,47 @@ export const authVerificationEmailService = async ({
 
   return snakecaseKeys(user);
 };
+
+export const authLoginService = async ({
+  email,
+  password,
+}: Pick<User, "email" | "password">) => {
+  const checkUserByEmail = await prisma.user.findUnique({
+    where: { email },
+  });
+
+  if (!checkUserByEmail) {
+    throw { message: "Email is not register", isExpose: true };
+  }
+
+  if (!password) {
+    throw { message: "Password is required", isExpose: true };
+  }
+
+  if (!checkUserByEmail.password) {
+    throw {
+      message:
+        "Your email address has not been verified. Please check your inbox and click the verification link we sent you before you can login.",
+    };
+  }
+
+  const comparePassword = await bcrypt.compare(
+    password,
+    checkUserByEmail?.password
+  );
+
+  const token = await jwtSign(
+    {
+      user_id: checkUserByEmail.id,
+      role: checkUserByEmail.userRole,
+    },
+    process.env.JWT_SECRET_KEY!,
+    { algorithm: "HS256" }
+  );
+
+  return {
+    token,
+    full_name: checkUserByEmail?.fullName,
+    role: checkUserByEmail?.userRole,
+  };
+};

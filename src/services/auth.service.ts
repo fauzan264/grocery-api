@@ -141,6 +141,8 @@ export const authLoginService = async ({
     checkUserByEmail?.password
   );
 
+  if (!comparePassword) throw { message: "Password not valid", isExpose: true };
+
   const token = await jwtSign(
     {
       user_id: checkUserByEmail.id,

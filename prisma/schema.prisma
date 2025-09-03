@@ -25,16 +25,17 @@ model User {
   photoProfile String?  @map("photo_profile") @db.VarChar(100)
   verified     Boolean? @default(false)
 
-  user_role UserRole
-  status    UserStatus @default(INACTIVE)
+  userRole UserRole   @map("user_role")
+  status   UserStatus @default(INACTIVE)
 
-  createdAt    DateTime       @default(now()) @map("created_at")
-  updatedAt    DateTime       @updatedAt @map("updated_at")
-  deletedAt    DateTime?      @map("deleted_at")
   UserStore    UserStore[]
   UserAddress  UserAddress?
   Order        Order[]
   ShoppingCart ShoppingCart[]
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
   @@map("users")
 }

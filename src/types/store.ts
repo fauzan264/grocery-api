@@ -43,3 +43,8 @@ export interface IUpdateStoreServiceProps
   > {
   logo?: Express.Multer.File;
 }
+
+export interface ICreateAssignStoreAdminServiceProps {
+  id: string;
+  userId: string;
+}

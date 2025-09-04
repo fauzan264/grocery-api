@@ -1,7 +1,8 @@
 import snakecaseKeys from "snakecase-keys";
 import { prisma } from "../db/connection";
-import { Store, StoreStatus } from "../generated/prisma";
+import { Store, StoreStatus, UserRole } from "../generated/prisma";
 import {
+  ICreateAssignStoreAdminServiceProps,
   ICreateStoreServiceProps,
   IGetAllStoreServiceProps,
   IUpdateStoreServiceProps,
@@ -240,4 +241,77 @@ export const updateStoreService = async ({
   };
 
   return snakecaseKeys(formattedResponse);
+};
+
+export const createAssignStoreAdminService = async ({
+  id,
+  userId,
+}: ICreateAssignStoreAdminServiceProps) => {
+  try {
+    const store = await prisma.store.findUnique({
+      where: {
+        id,
+      },
+    });
+
+    if (!store) {
+      throw { message: "Store not found", isExpose: true };
+    }
+
+    const user = await prisma.user.findUnique({
+      where: {
+        id: userId,
+      },
+      select: {
+        userRole: true,
+      },
+    });
+
+    if (!user) {
+      throw { message: "User not found", isExpose: true };
+    }
+
+    if (user.userRole != UserRole.ADMIN_STORE) {
+      throw {
+        message: "Invalid role. Only the Store Admin role can be assigned.",
+        isExpose: true,
+      };
+    }
+
+    const admin_store = await prisma.userStore.create({
+      data: {
+        userId: userId,
+        storeId: id,
+      },
+      omit: {
+        userId: true,
+        storeId: true,
+      },
+      include: {
+        user: {
+          select: {
+            fullName: true,
+          },
+        },
+        store: {
+          select: {
+            name: true,
+          },
+        },
+      },
+    });
+
+    return {
+      store_name: admin_store.store.name,
+      full_name: admin_store.user.fullName,
+    };
+  } catch (error: any) {
+    if (error?.code == "P2002") {
+      throw {
+        message: "Assignment failed. User is already assigned to this store.",
+        isExpose: true,
+      };
+    }
+    throw { message: "Internal server error", isExpose: true };
+  }
 };

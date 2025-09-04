@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import {
+  createAssignStoreAdminService,
   createStoreService,
   deleteStoreService,
   getAllStoreService,
@@ -120,5 +121,27 @@ export const updateStoreController = async (req: Request, res: Response) => {
     success: true,
     message: "Store updated successfully.",
     data: store,
+  });
+};
+
+export const createAssignStoreAdminController = async (
+  req: Request,
+  res: Response
+) => {
+  const { id } = req.params;
+  const { user_id } = req.body;
+
+  const { full_name, store_name } = await createAssignStoreAdminService({
+    id,
+    userId: user_id,
+  });
+
+  res.status(201).json({
+    success: true,
+    message: "User has been successfully assigned as Store Admin.",
+    data: {
+      store_name,
+      full_name,
+    },
   });
 };

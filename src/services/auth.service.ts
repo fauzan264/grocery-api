@@ -262,3 +262,23 @@ export const authChangePasswordService = async ({
     },
   });
 };
+
+export const authSessionLoginService = async ({ id }: Pick<User, "id">) => {
+  const user = await prisma.user.findUnique({
+    where: {
+      id,
+    },
+    select: {
+      id: true,
+      fullName: true,
+      userRole: true,
+    },
+  });
+
+  const response = {
+    ...user,
+    role: user?.userRole,
+  };
+
+  return snakecaseKeys(response);
+};

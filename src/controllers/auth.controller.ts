@@ -5,6 +5,7 @@ import {
   authRegisterService,
   authRequestResetPasswordService,
   authResetPasswordService,
+  authSessionLoginService,
   authVerificationEmailService,
 } from "../services/auth.service";
 
@@ -111,5 +112,22 @@ export const authChangePasswordController = async (
   res.status(200).json({
     success: true,
     message: "Password changed successfully",
+  });
+};
+
+export const authSessionLoginController = async (
+  req: Request,
+  res: Response
+) => {
+  const { user_id } = res.locals.payload;
+
+  const { id, full_name, role } = await authSessionLoginService({
+    id: user_id,
+  });
+
+  res.status(200).json({
+    success: true,
+    message: "Session data retrieved successfully.",
+    data: { id, full_name, role },
   });
 };

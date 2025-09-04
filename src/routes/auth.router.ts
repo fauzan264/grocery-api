@@ -5,6 +5,7 @@ import {
   authRegisterController,
   authRequestResetPasswordController,
   authResetPasswordController,
+  authSessionLoginController,
   authVerificationEmailController,
 } from "../controllers/auth.controller";
 import { jwtVerify } from "../middlewares/jwt.verify";
@@ -17,5 +18,6 @@ authRouter.post("/login", authLoginController);
 authRouter.post("/request-reset-password", authRequestResetPasswordController);
 authRouter.post("/reset-password", jwtVerify, authResetPasswordController);
 authRouter.post("/change-password", jwtVerify, authChangePasswordController);
+authRouter.get("/session", jwtVerify, authSessionLoginController);
 
 export default authRouter;

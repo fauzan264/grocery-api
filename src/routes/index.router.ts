@@ -6,7 +6,7 @@ import storeRouter from "./store.router";
 const mainRouter = Router();
 
 mainRouter.use("/api/auth", authRouter);
-mainRouter.use("/api/user", userRouter);
-mainRouter.use("/api/store", storeRouter);
+mainRouter.use("/api/users", userRouter);
+mainRouter.use("/api/stores", storeRouter);
 
 export default mainRouter;

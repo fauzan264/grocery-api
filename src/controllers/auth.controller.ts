@@ -17,7 +17,7 @@ export const authRegisterController = async (req: Request, res: Response) => {
     phoneNumber: phone_number,
   });
 
-  res.status(200).json({
+  res.status(201).json({
     success: true,
     message: "Register user successful",
     data: {

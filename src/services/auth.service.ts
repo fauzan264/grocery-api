@@ -6,6 +6,7 @@ import fs from "fs";
 import { transporter } from "../lib/transporter";
 import bcrypt from "bcrypt";
 import snakecaseKeys from "snakecase-keys";
+import { IAuthChangePasswordServiceProps } from "../types/auth";
 
 export const authRegisterService = async ({
   fullName,
@@ -31,7 +32,7 @@ export const authRegisterService = async ({
     });
 
     const token = await jwtSign(
-      { userId: user?.id },
+      { user_id: user?.id },
       process.env.JWT_SECRET_KEY!,
       {
         algorithm: "HS256",
@@ -173,7 +174,7 @@ export const authRequestResetPasswordService = async ({
   }
 
   const token = await jwtSign(
-    { userId: checkUserByEmail?.id },
+    { user_id: checkUserByEmail?.id },
     process.env.JWT_SECRET_KEY!,
     { algorithm: "HS256" }
   );
@@ -219,5 +220,45 @@ export const authResetPasswordService = async ({
   await prisma.user.update({
     data: { password: hashedPassword },
     where: { id },
+  });
+};
+
+export const authChangePasswordService = async ({
+  oldPassword,
+  newPassword,
+  userId,
+}: IAuthChangePasswordServiceProps) => {
+  const user = await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+  });
+
+  if (!user) throw { message: `User not found`, isExpose: true };
+
+  const comparePassword = await bcrypt.compare(oldPassword, user.password!);
+
+  if (!comparePassword)
+    throw {
+      message: "The password you entered does not match our records.",
+      isExpose: true,
+    };
+
+  if (oldPassword == newPassword)
+    throw {
+      message: "New password cannot be the same as the old password",
+      isExpose: true,
+    };
+
+  const saltRounds = 10;
+  const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+
+  await prisma.user.update({
+    data: {
+      password: hashedPassword,
+    },
+    where: {
+      id: user.id,
+    },
   });
 };

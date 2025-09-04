@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import {
+  authChangePasswordService,
   authLoginService,
   authRegisterService,
   authRequestResetPasswordService,
@@ -32,10 +33,10 @@ export const authVerificationEmailController = async (
   res: Response
 ) => {
   const { password } = req.body;
-  const { userId } = res.locals.payload;
+  const { user_id } = res.locals.payload;
 
   const { full_name, email } = await authVerificationEmailService({
-    id: userId,
+    id: user_id,
     password,
   });
 
@@ -84,12 +85,31 @@ export const authResetPasswordController = async (
   res: Response
 ) => {
   const { password } = req.body;
-  const { userId } = res.locals.payload;
+  const { user_id } = res.locals.payload;
 
-  await authResetPasswordService({ id: userId, password });
+  await authResetPasswordService({ id: user_id, password });
 
   res.status(200).json({
     success: true,
     message: "Password updated successfully",
+  });
+};
+
+export const authChangePasswordController = async (
+  req: Request,
+  res: Response
+) => {
+  const { old_password, new_password } = req.body;
+  const { user_id } = res.locals.payload;
+
+  await authChangePasswordService({
+    oldPassword: old_password,
+    newPassword: new_password,
+    userId: user_id,
+  });
+
+  res.status(200).json({
+    success: true,
+    message: "Password changed successfully",
   });
 };

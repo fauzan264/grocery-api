@@ -2,6 +2,7 @@ import { Router } from "express";
 import { jwtVerify } from "../middlewares/jwt.verify";
 import { roleVerify } from "../middlewares/role.verify";
 import {
+  createAssignStoreAdminController,
   createStoreController,
   deleteStoreController,
   getAllStoreController,
@@ -43,6 +44,12 @@ storeRouter.put(
   roleVerify(["SUPER_ADMIN"]),
   uploaderMulter(["image"], "memoryStorage").single("logo"),
   updateStoreController
+);
+storeRouter.post(
+  "/:id/assign-user",
+  jwtVerify,
+  roleVerify(["SUPER_ADMIN"]),
+  createAssignStoreAdminController
 );
 
 export default storeRouter;

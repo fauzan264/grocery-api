@@ -89,10 +89,10 @@ export const getMyStoreService = async ({ id }: Pick<User, "id">) => {
   return store;
 };
 
-/* ========== Fungsi admin  ========== */
+/* ========== Fungsi super admin  ========== */
 
 /* DTO types internal */
-type CreatePayload = {
+export interface CreateUserArgs {
   fullName: string;
   email: string;
   dateOfBirth?: string | Date | null;
@@ -100,7 +100,21 @@ type CreatePayload = {
   userRole: "ADMIN_STORE" | "CUSTOMER" | "SUPER_ADMIN" | string;
   password?: string | null;
   photoProfile?: string | null;
-};
+}
+
+export interface UpdateUserArgs {
+  id: string;
+  payload: {
+    fullName?: string;
+    email?: string;
+    dateOfBirth?: string | Date | null;
+    phoneNumber?: string | null;
+    userRole?: "ADMIN_STORE" | "CUSTOMER" | "SUPER_ADMIN" | string;
+    password?: string | null;
+    photoProfile?: string | null;
+    status?: "ACTIVE" | "INACTIVE" | string;
+  };
+}
 
 type ListOpts = {
   role?: string;
@@ -108,17 +122,8 @@ type ListOpts = {
   limit?: number;
   q?: string;
 };
-
-type UpdatePayload = {
-  fullName?: string;
-  phoneNumber?: string | null;
-  password?: string | null;
-  status?: "ACTIVE" | "INACTIVE" | string;
-  photoProfile?: string | null;
-};
-
 /* create user (SUPER_ADMIN) */
-export const createUserAdminService = async (payload: CreatePayload) => {
+export const createUserAdminService = async (payload: CreateUserArgs) => {
   const { fullName, email, dateOfBirth, phoneNumber, userRole, password, photoProfile } = payload;
 
   // business rule: ADMIN_STORE must have password
@@ -237,18 +242,33 @@ export const getUserAdminByIdService = async ({ id }: { id: string }) => {
   }
 };
 
-/* update user */
-export const updateUserAdminService = async ({ id, payload }: { id: string; payload: UpdatePayload }) => {
+export const updateUserAdminService = async ({ id, payload }: UpdateUserArgs) => {
+  // cek dulu user ada
+  const existing = await prisma.user.findFirst({ where: { id, deletedAt: null } });
+  if (!existing) throw { message: "User not found", isExpose: true };
+
   try {
-    const existing = await prisma.user.findFirst({ where: { id, deletedAt: null } });
-    if (!existing) throw { message: "User not found", isExpose: true };
+    // build data hanya dengan field yg valid pada schema (camelCase)
+    const data: any = {};
 
-    const data: any = { ...payload };
+    if (payload.fullName !== undefined) data.fullName = payload.fullName;
+    if (payload.email !== undefined) data.email = payload.email;
+    if (payload.dateOfBirth !== undefined) data.dateOfBirth = payload.dateOfBirth ? new Date(payload.dateOfBirth as any) : null;
+    if (payload.phoneNumber !== undefined) data.phoneNumber = payload.phoneNumber;
+    if (payload.status !== undefined) data.status = payload.status;
+    if (payload.photoProfile !== undefined) data.photoProfile = payload.photoProfile;
 
-    if (payload.password) data.password = await bcrypt.hash(payload.password, SALT_ROUNDS);
+    // jangan izinkan change role lewat endpoint ini (security)
+    // if (payload.userRole !== undefined) data.userRole = payload.userRole; // uncomment only if allowed & validated
 
-    // prevent role change here by default (optional)
-    if ((data as any).userRole) delete (data as any).userRole;
+    if (payload.password !== undefined && payload.password !== null) {
+      data.password = await bcrypt.hash(payload.password, SALT_ROUNDS);
+    }
+
+    data.updatedAt = new Date();
+
+    // DEBUG: uncomment bila perlu
+    // console.log("mapped update data ->", data);
 
     const updated = await prisma.user.update({
       where: { id },
@@ -262,10 +282,11 @@ export const updateUserAdminService = async ({ id, payload }: { id: string; payl
         status: true,
         photoProfile: true,
         updatedAt: true,
+        createdAt: true,
       },
     });
 
-    return snakecaseKeys(stripSensitive(updated));
+    return snakecaseKeys(stripSensitive(updated)); // tetap return snake_case jika kamu konsisten sebelumnya
   } catch (err: any) {
     if (err?.code === "P2002") {
       const target = err?.meta?.target;

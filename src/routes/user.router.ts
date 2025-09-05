@@ -6,9 +6,16 @@ import {
   getMyAddressesController,
   getMyProfileController,
   getMyStoreController,
+  //admin controller
+  createUserAdminController,
+  listUsersAdminController,
+  getUserAdminByIdController,
+  updateUserAdminController,
+  deleteUserAdminController,
 } from "../controllers/user.controller";
+import { validateYup } from "../middlewares/validateYup"; // <-- tambahkan ini
+import { createUserAdminSchema, updateUserAdminSchema } from "../validations/user.admin.validation"; // <-- tambahkan ini
 
-//import { file controller }
 
 const userRouter = Router();
 
@@ -25,12 +32,28 @@ userRouter.get(
   roleVerify(["ADMIN_STORE"]),
   getMyStoreController
 );
-/*router endpoint
-userRouter.post("", jwtVerify, roleVerify(["SUPER_ADMIN"]), file controller)
-userRouter.get("/:id", jwtVerify, roleVerify(["SUPER_ADMIN"]), file controller) 
-userRouter.get("", jwtVerify, roleVerify(["SUPER_ADMIN"]), file controller)
-userRouter.put("/:id", jwtVerify, roleVerify(["SUPER_ADMIN"]), file controller)
-userRouter.delete("/:id", jwtVerify, roleVerify(["SUPER_ADMIN"]), file controller)
-*/
+
+//end point super admin
+userRouter.post(
+  "/",
+  jwtVerify,
+  roleVerify(["SUPER_ADMIN"]),
+  validateYup(createUserAdminSchema),
+  createUserAdminController
+);
+
+userRouter.get("/", jwtVerify, roleVerify(["SUPER_ADMIN"]), listUsersAdminController);
+
+userRouter.get("/:id", jwtVerify, roleVerify(["SUPER_ADMIN"]), getUserAdminByIdController);
+
+userRouter.put(
+  "/:id",
+  jwtVerify,
+  roleVerify(["SUPER_ADMIN"]),
+  validateYup(updateUserAdminSchema),
+  updateUserAdminController
+);
+
+userRouter.delete("/:id", jwtVerify, roleVerify(["SUPER_ADMIN"]), deleteUserAdminController);
 
 export default userRouter;

@@ -4,13 +4,15 @@ import {
   getMyAddressesService,
   getMyProfileService,
   getMyStoreService,
-  //admin service
-  createUserAdminService,
+} from "../services/user.service";
+
+//admin service
+import {createUserAdminService,
   listUsersAdminService,
   getUserAdminByIdService,
   updateUserAdminService,
   deleteUserAdminService,
-} from "../services/user.service";
+} from "../services/user.superAdmin.service"
 
 export const getMyProfileController = async (req: Request, res: Response) => {
   const { user_id } = res.locals.payload;

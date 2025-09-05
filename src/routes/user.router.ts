@@ -13,8 +13,8 @@ import {
   updateUserAdminController,
   deleteUserAdminController,
 } from "../controllers/user.controller";
-import { validateYup } from "../middlewares/validateYup"; // <-- tambahkan ini
-import { createUserAdminSchema, updateUserAdminSchema } from "../validations/user.admin.validation"; // <-- tambahkan ini
+import { validateYup } from "../middlewares/validateYup";
+import { createUserAdminSchema, updateUserAdminSchema } from "../validations/user.admin.validation";
 
 
 const userRouter = Router();

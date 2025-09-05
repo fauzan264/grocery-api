@@ -206,6 +206,7 @@ model ShoppingCartItem {
   subTotal  Int    @map("sub_total")
 
   cart ShoppingCart @relation(fields: [cartId], references: [id])
+  product Product      @relation(fields: [productId], references: [id])
 
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
@@ -243,6 +244,8 @@ model Product {
 
   ProductDiscounts ProductDiscount[]
   OrderItems       OrderItems[]
+  ShoppingCartItem   ShoppingCartItem[]
+
 
   @@map("products")
 }

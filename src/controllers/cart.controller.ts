@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { AddtoCartService, updateCartItemService } from "../services/cart.service";
+import { AddtoCartService, deleteCartService, getCartItemsService, updateCartItemService } from "../services/cart.service";
 
 export const addtoCartController = async (req:Request, res:Response) => {
     const { userId } = res.locals.payload;
@@ -35,5 +35,27 @@ export const updateCartItemController = async (req: Request, res: Response) => {
   return res.status(200).json({
     message: "Cart updated successfully",
     data: updatedItem,
+  });
+};
+
+export const deleteCartController = async (req: Request, res: Response)  => {
+    const { userId } = res.locals.payload;
+    const { itemId } = req.params;
+
+    const result = await deleteCartService ({userId, itemId});
+
+    return res.status(200).json({
+        message:result.message
+    })
+}
+
+export const getCartItemsController = async (req: Request, res: Response) => {
+  const { userId } = res.locals.payload;
+
+  const result = await getCartItemsService(userId);
+
+  return res.status(200).json({
+    message: "Cart fetched successfully",
+    data: result.items,
   });
 };

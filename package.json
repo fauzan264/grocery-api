@@ -7,7 +7,7 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "postinstall": "prisma generate",
-    "seed": "ts-node --transpile-only ./src/prisma/seed.ts",
+    "seed": "ts-node --transpile-only ./src/seed/seed.ts",
     "prisma:generate": "prisma generate"
   },
   "keywords": [],
@@ -35,7 +35,8 @@
     "nodemailer": "^7.0.5",
     "react-helmet-async": "^2.0.5",
     "snakecase-keys": "^8.1.0",
-    "uuid": "^11.1.0"
+    "uuid": "^11.1.0",
+    "yup": "^1.7.0"
   },
   "devDependencies": {
     "@types/jsonwebtoken": "^9.0.10",

@@ -232,7 +232,8 @@ model Product {
   name        String         @unique @db.VarChar(200) // no duplicate product name (global)
   sku         String?        @unique @db.VarChar(50)
   description String?
-  price       Int // price in smallest currency unit (IDR)
+  price       Int            // price in smallest currency unit (IDR)
+  weight_g    Int?           @map("weight_g")        // berat dalam gram
   isActive    Boolean        @default(true) @map("is_active")
   categoryId  String?        @map("category_id") @db.VarChar(36)
   category    Category?      @relation(fields: [categoryId], references: [id])
@@ -244,8 +245,7 @@ model Product {
 
   ProductDiscounts ProductDiscount[]
   OrderItems       OrderItems[]
-  ShoppingCartItem   ShoppingCartItem[]
-
+  ShoppingCartItem ShoppingCartItem[]
 
   @@map("products")
 }
@@ -290,10 +290,22 @@ enum StockChangeType {
   @@map("stock_change_type")
 }
 
+enum StockJournalType {
+  PURCHASE     // masuk dari pembelian supplier
+  SALE         // berkurang karena penjualan
+  RETURN       // retur / pengembalian
+  TRANSFER     // pindah antar store
+  ADJUSTMENT   // penyesuaian stok manual
+  OTHER
+
+  @@map("stock_journal_type")
+}
+
 model StockJournal {
   id           String          @id @default(uuid()) @db.VarChar(36)
   stockId      String          @map("stock_id") @db.VarChar(36)
   changeType   StockChangeType @map("change_type")
+  journalType  StockJournalType? @map("journal_type")
   quantityOld  Int             @map("quantity_old")
   quantityDiff Int             @map("quantity_diff")
   quantityNew  Int             @map("quantity_new")

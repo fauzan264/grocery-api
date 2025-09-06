@@ -230,7 +230,7 @@ model Category {
 model Product {
   id          String         @id @default(uuid()) @db.VarChar(36)
   name        String         @unique @db.VarChar(200) // no duplicate product name (global)
-  sku         String?        @unique @db.VarChar(50)
+  sku         String         @unique @db.VarChar(100)
   description String?
   price       Int            // price in smallest currency unit (IDR)
   weight_g    Int?           @map("weight_g")        // berat dalam gram
@@ -248,21 +248,25 @@ model Product {
   ShoppingCartItem ShoppingCartItem[]
 
   @@map("products")
+  @@unique([name])
 }
 
 model ProductImage {
-  id        String  @id @default(uuid()) @db.VarChar(36)
-  productId String  @map("product_id") @db.VarChar(36)
-  url       String  @db.VarChar(255)
-  altText   String? @map("alt_text") @db.VarChar(255)
-  isPrimary Boolean @default(false) @map("is_primary")
+  id         String   @id @default(uuid()) @db.VarChar(36)
+  productId  String   @map("product_id") @db.VarChar(36)
+  url        String   @db.VarChar(500)
+  publicId   String?  @map("public_id") @db.VarChar(255) // cloudinary public_id
+  altText    String?  @map("alt_text") @db.VarChar(255)
+  isPrimary  Boolean  @default(false) @map("is_primary")
 
-  product Product @relation(fields: [productId], references: [id])
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  createdAt DateTime @default(now()) @map("created_at")
+  createdAt  DateTime @default(now()) @map("created_at")
 
   @@map("product_images")
+  @@index([productId])
 }
+
 
 model Stock {
   id        String @id @default(uuid()) @db.VarChar(36)
@@ -278,7 +282,7 @@ model Stock {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  @@unique([productId, storeId])
+  @@unique([productId, storeId], name: "productId_storeId")
   @@map("stocks")
 }
 

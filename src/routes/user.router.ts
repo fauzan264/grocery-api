@@ -12,17 +12,22 @@ import {
   getUserAdminByIdController,
   updateUserAdminController,
   deleteUserAdminController,
+  createAddressesController,
+  updateAddressesController,
+  deleteAddressesController,
 } from "../controllers/user.controller";
 import { validateYup } from "../middlewares/validateYup";
-import { createUserAdminSchema, updateUserAdminSchema } from "../validations/user.admin.validation";
-
+import {
+  createUserAdminSchema,
+  updateUserAdminSchema,
+} from "../validations/user.admin.validation";
 
 const userRouter = Router();
 
 userRouter.get("/me", jwtVerify, getMyProfileController);
-userRouter.get("/me/addresses", jwtVerify, getMyAddressesController);
+userRouter.get("/:userId/addresses", jwtVerify, getMyAddressesController);
 userRouter.get(
-  "/me/addresses/:addressId",
+  "/:userId/addresses/:addressId",
   jwtVerify,
   getMyAddressesByIDController
 );
@@ -42,9 +47,19 @@ userRouter.post(
   createUserAdminController
 );
 
-userRouter.get("/", jwtVerify, roleVerify(["SUPER_ADMIN"]), listUsersAdminController);
+userRouter.get(
+  "/",
+  jwtVerify,
+  roleVerify(["SUPER_ADMIN"]),
+  listUsersAdminController
+);
 
-userRouter.get("/:id", jwtVerify, roleVerify(["SUPER_ADMIN"]), getUserAdminByIdController);
+userRouter.get(
+  "/:id",
+  jwtVerify,
+  roleVerify(["SUPER_ADMIN"]),
+  getUserAdminByIdController
+);
 
 userRouter.put(
   "/:id",
@@ -54,6 +69,22 @@ userRouter.put(
   updateUserAdminController
 );
 
-userRouter.delete("/:id", jwtVerify, roleVerify(["SUPER_ADMIN"]), deleteUserAdminController);
+userRouter.delete(
+  "/:id",
+  jwtVerify,
+  roleVerify(["SUPER_ADMIN"]),
+  deleteUserAdminController
+);
+userRouter.post("/:user_id/addresses", jwtVerify, createAddressesController);
+userRouter.put(
+  "/:userId/addresses/:addressId",
+  jwtVerify,
+  updateAddressesController
+);
+userRouter.delete(
+  "/:userId/addresses/:addressId",
+  jwtVerify,
+  deleteAddressesController
+);
 
 export default userRouter;

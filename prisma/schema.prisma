@@ -25,7 +25,7 @@ model User {
   status       UserStatus     @default(INACTIVE)
   Order        Order[]
   ShoppingCart ShoppingCart[]
-  UserAddress  UserAddress?
+  UserAddress  UserAddress[]
   UserStore    UserStore[]
 
   @@map("users")
@@ -42,7 +42,7 @@ model UserAddress {
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
   deletedAt   DateTime? @map("deleted_at")
-  userId      String    @unique @map("user_id") @db.VarChar(36)
+  userId      String    @map("user_id") @db.VarChar(36)
   user        User      @relation(fields: [userId], references: [id])
 
   @@map("user_addresses")
@@ -80,20 +80,20 @@ model UserStore {
 }
 
 model Order {
-  id           String       @id @default(uuid()) @db.VarChar(36)
-  totalPrice   Int          @map("total_price")
+  id           String      @id @default(uuid()) @db.VarChar(36)
+  totalPrice   Int         @map("total_price")
   discount     Int
-  finalPrice   Int          @map("final_price")
-  paymentProof String?       @map("payment_proof")
-  createdAt    DateTime     @default(now()) @map("created_at")
-  updatedAt    DateTime     @updatedAt @map("updated_at")
-  deletedAt    DateTime?    @map("deleted_at")
-  userId       String       @map("user_id") @db.VarChar(36)
+  finalPrice   Int         @map("final_price")
+  paymentProof String?     @map("payment_proof")
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+  deletedAt    DateTime?   @map("deleted_at")
+  userId       String      @map("user_id") @db.VarChar(36)
   status       OrderStatus
 
-  OrderItems   OrderItems[]
-  user         User         @relation(fields: [userId], references: [id])
-  Shipment     Shipment?
+  OrderItems OrderItems[]
+  user       User         @relation(fields: [userId], references: [id])
+  Shipment   Shipment?
 
   @@map("orders")
 }

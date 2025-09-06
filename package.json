@@ -35,12 +35,14 @@
     "nodemailer": "^7.0.5",
     "react-helmet-async": "^2.0.5",
     "snakecase-keys": "^8.1.0",
+    "streamifier": "^0.1.1",
     "uuid": "^11.1.0",
     "yup": "^1.7.0"
   },
   "devDependencies": {
     "@types/jsonwebtoken": "^9.0.10",
     "@types/luxon": "^3.7.0",
+    "@types/streamifier": "^0.1.2",
     "nodemon": "^3.1.10",
     "prisma": "^6.15.0",
     "ts-node": "^10.9.2",

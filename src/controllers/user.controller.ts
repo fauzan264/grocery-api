@@ -1,5 +1,7 @@
 import { Request, Response } from "express";
 import {
+  createAddressesService,
+  deleteAddressesService,
   getMyAddressesByIDService,
   getMyAddressesService,
   getMyProfileService,
@@ -10,6 +12,7 @@ import {
   getUserAdminByIdService,
   updateUserAdminService,
   deleteUserAdminService,
+  updateAddressesService,
 } from "../services/user.service";
 
 export const getMyProfileController = async (req: Request, res: Response) => {
@@ -40,10 +43,9 @@ export const getMyAddressesByIDController = async (
   req: Request,
   res: Response
 ) => {
-  const { user_id } = res.locals.payload;
-  const { storeId } = req.params;
+  const { userId, addressId } = req.params;
 
-  const address = await getMyAddressesByIDService({ id: user_id, storeId });
+  const address = await getMyAddressesByIDService({ userId, addressId });
 
   res.status(200).json({
     status: true,
@@ -66,7 +68,10 @@ export const getMyStoreController = async (req: Request, res: Response) => {
 
 // Create user SUPER_ADMIN
 
-export const createUserAdminController = async (req: Request, res: Response) => {
+export const createUserAdminController = async (
+  req: Request,
+  res: Response
+) => {
   try {
     const payload = req.body;
     const created = await createUserAdminService(payload);
@@ -78,7 +83,10 @@ export const createUserAdminController = async (req: Request, res: Response) => 
   } catch (err: any) {
     console.error("createUserAdminController:", err);
     const status = err?.isExpose ? 400 : 500;
-    return res.status(status).json({ success: false, message: err?.message || "Failed to create user" });
+    return res.status(status).json({
+      success: false,
+      message: err?.message || "Failed to create user",
+    });
   }
 };
 
@@ -92,49 +100,143 @@ export const listUsersAdminController = async (req: Request, res: Response) => {
       limit: Number(limit),
       q: q as string | undefined,
     });
-    return res.status(200).json({ success: true, message: "Users fetched", data: result });
+    return res
+      .status(200)
+      .json({ success: true, message: "Users fetched", data: result });
   } catch (err: any) {
     console.error("listUsersAdminController:", err);
-    return res.status(500).json({ success: false, message: err?.message || "Failed to list users" });
+    return res.status(500).json({
+      success: false,
+      message: err?.message || "Failed to list users",
+    });
   }
 };
 
 /* Get user by id (SUPER_ADMIN) */
-export const getUserAdminByIdController = async (req: Request, res: Response) => {
+export const getUserAdminByIdController = async (
+  req: Request,
+  res: Response
+) => {
   try {
     const { id } = req.params;
     const user = await getUserAdminByIdService({ id });
-    return res.status(200).json({ success: true, message: "User fetched", data: user });
+    return res
+      .status(200)
+      .json({ success: true, message: "User fetched", data: user });
   } catch (err: any) {
     console.error("getUserAdminByIdController:", err);
     const status = err?.isExpose ? 404 : 500;
-    return res.status(status).json({ success: false, message: err?.message || "Failed to fetch user" });
+    return res.status(status).json({
+      success: false,
+      message: err?.message || "Failed to fetch user",
+    });
   }
 };
 
 /* Update user (SUPER_ADMIN) */
-export const updateUserAdminController = async (req: Request, res: Response) => {
+export const updateUserAdminController = async (
+  req: Request,
+  res: Response
+) => {
   try {
     const { id } = req.params;
     const payload = req.body;
     const updated = await updateUserAdminService({ id, payload });
-    return res.status(200).json({ success: true, message: "User updated", data: updated });
+    return res
+      .status(200)
+      .json({ success: true, message: "User updated", data: updated });
   } catch (err: any) {
     console.error("updateUserAdminController:", err);
     const status = err?.isExpose ? 400 : 500;
-    return res.status(status).json({ success: false, message: err?.message || "Failed to update user" });
+    return res.status(status).json({
+      success: false,
+      message: err?.message || "Failed to update user",
+    });
   }
 };
 
 /* Soft delete user (SUPER_ADMIN) */
-export const deleteUserAdminController = async (req: Request, res: Response) => {
+export const deleteUserAdminController = async (
+  req: Request,
+  res: Response
+) => {
   try {
     const { id } = req.params;
     await deleteUserAdminService({ id });
-    return res.status(200).json({ success: true, message: "User soft-deleted" });
+    return res
+      .status(200)
+      .json({ success: true, message: "User soft-deleted" });
   } catch (err: any) {
     console.error("deleteUserAdminController:", err);
     const status = err?.isExpose ? 400 : 500;
-    return res.status(status).json({ success: false, message: err?.message || "Failed to delete user" });
+    return res.status(status).json({
+      success: false,
+      message: err?.message || "Failed to delete user",
+    });
   }
+};
+
+export const createAddressesController = async (
+  req: Request,
+  res: Response
+) => {
+  const { user_id } = res.locals.payload;
+  const { city, province, subdistrict, address, latitude, longitude } =
+    req.body;
+
+  const userAddress = await createAddressesService({
+    city,
+    province,
+    subdistrict,
+    address,
+    latitude,
+    longitude,
+    userId: user_id,
+  });
+
+  res.status(201).json({
+    status: true,
+    message: "Address created successfully.",
+    data: userAddress,
+  });
+};
+
+export const updateAddressesController = async (
+  req: Request,
+  res: Response
+) => {
+  const { userId, addressId } = req.params;
+  const { city, province, subdistrict, address, latitude, longitude } =
+    req.body;
+
+  const userAddress = await updateAddressesService({
+    addressId,
+    city,
+    province,
+    subdistrict,
+    address,
+    latitude,
+    longitude,
+    userId,
+  });
+
+  res.status(200).json({
+    status: true,
+    message: "Address updated successfully.",
+    data: userAddress,
+  });
+};
+
+export const deleteAddressesController = async (
+  req: Request,
+  res: Response
+) => {
+  const { userId, addressId } = req.params;
+
+  await deleteAddressesService({ userId, addressId });
+
+  res.status(200).json({
+    status: true,
+    message: "Address deleted successfully.",
+  });
 };

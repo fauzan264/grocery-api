@@ -1,6 +1,12 @@
 import snakecaseKeys from "snakecase-keys";
 import { prisma } from "../db/connection";
-import { User, UserStatus, UserRole } from "../generated/prisma";
+import { User, UserStatus } from "../generated/prisma";
+import {
+  ICreateAddressesServiceProps,
+  IDeleteAddressesServiceProps,
+  IGetMyAddressesByIDServiceProps,
+  IUpdateAddressesServiceProps,
+} from "../types/user";
 import bcrypt from "bcrypt";
 
 /* ========== Config / Helpers ========== */
@@ -36,24 +42,30 @@ export const getMyAddressesService = async ({ id }: Pick<User, "id">) => {
       userId: id,
       deletedAt: null,
     },
+    omit: {
+      deletedAt: true,
+    },
   });
 
   const responseFormatter = addresses.map((address: any) => {
-    return snakecaseKeys(address);
+    return snakecaseKeys({
+      ...address,
+      latitude: Number(address.latitude),
+      longitude: Number(address.longitude),
+    });
   });
 
   return responseFormatter;
 };
 
 export const getMyAddressesByIDService = async ({
-  id,
-}: {
-  id: string;
-  storeId: string;
-}) => {
+  userId,
+  addressId,
+}: IGetMyAddressesByIDServiceProps) => {
   const address = await prisma.userAddress.findUnique({
     where: {
-      userId: id,
+      id: addressId,
+      userId,
       deletedAt: null,
     },
     omit: {
@@ -65,7 +77,13 @@ export const getMyAddressesByIDService = async ({
     throw { message: "Address not found", isExpose: true };
   }
 
-  return address;
+  const formattedResponse = {
+    ...address,
+    latitude: Number(address.latitude),
+    longitude: Number(address.longitude),
+  };
+
+  return snakecaseKeys(formattedResponse);
 };
 
 export const getMyStoreService = async ({ id }: Pick<User, "id">) => {
@@ -87,6 +105,130 @@ export const getMyStoreService = async ({ id }: Pick<User, "id">) => {
   }
 
   return store;
+};
+
+export const createAddressesService = async ({
+  city,
+  province,
+  subdistrict,
+  address,
+  latitude,
+  longitude,
+  userId,
+}: ICreateAddressesServiceProps) => {
+  const user = await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+  });
+
+  if (user?.status == UserStatus.INACTIVE) {
+    throw { message: "User status inactive", isExpose: true };
+  }
+
+  if (!user || user.deletedAt !== null) {
+    throw { message: "User not found", isExpose: true };
+  }
+
+  const userAddress = await prisma.userAddress.create({
+    data: {
+      city,
+      province,
+      subdistrict,
+      address,
+      latitude,
+      longitude,
+      userId,
+    },
+    omit: {
+      userId: true,
+      deletedAt: true,
+    },
+  });
+
+  const formattedResponse = {
+    ...userAddress,
+    latitude: Number(userAddress.latitude),
+    longitude: Number(userAddress.longitude),
+  };
+
+  return snakecaseKeys(formattedResponse);
+};
+
+export const updateAddressesService = async ({
+  addressId,
+  city,
+  province,
+  subdistrict,
+  address,
+  latitude,
+  longitude,
+  userId,
+}: IUpdateAddressesServiceProps) => {
+  const user = await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+  });
+
+  if (user?.status == UserStatus.INACTIVE) {
+    throw { message: "User status inactive", isExpose: true };
+  }
+
+  if (!user || user.deletedAt !== null) {
+    throw { message: "User not found", isExpose: true };
+  }
+
+  const userAddress = await prisma.userAddress.update({
+    data: {
+      city,
+      province,
+      subdistrict,
+      address,
+      latitude,
+      longitude,
+    },
+    where: {
+      id: addressId,
+    },
+    omit: {
+      userId: true,
+      deletedAt: true,
+    },
+  });
+
+  const formattedResponse = {
+    ...userAddress,
+    latitude: Number(userAddress.latitude),
+    longitude: Number(userAddress.longitude),
+  };
+
+  return snakecaseKeys(formattedResponse);
+};
+
+export const deleteAddressesService = async ({
+  addressId,
+  userId,
+}: IDeleteAddressesServiceProps) => {
+  const checkAddress = await prisma.userAddress.findUnique({
+    where: {
+      id: addressId,
+      userId,
+    },
+  });
+
+  if (!checkAddress || checkAddress.deletedAt != null) {
+    throw { message: "Address not found", isExpose: true };
+  }
+
+  await prisma.userAddress.update({
+    data: {
+      deletedAt: new Date(),
+    },
+    where: {
+      id: addressId,
+    },
+  });
 };
 
 /* ========== Fungsi super admin  ========== */
@@ -124,7 +266,15 @@ type ListOpts = {
 };
 /* create user (SUPER_ADMIN) */
 export const createUserAdminService = async (payload: CreateUserArgs) => {
-  const { fullName, email, dateOfBirth, phoneNumber, userRole, password, photoProfile } = payload;
+  const {
+    fullName,
+    email,
+    dateOfBirth,
+    phoneNumber,
+    userRole,
+    password,
+    photoProfile,
+  } = payload;
 
   // business rule: ADMIN_STORE must have password
   if (String(userRole) === "ADMIN_STORE" && !password) {
@@ -164,8 +314,10 @@ export const createUserAdminService = async (payload: CreateUserArgs) => {
   } catch (err: any) {
     if (err?.code === "P2002") {
       const target = err?.meta?.target;
-      if (Array.isArray(target) && target.includes("email")) throw { message: "Email already exists", isExpose: true };
-      if (Array.isArray(target) && target.includes("phone_number")) throw { message: "Phone number already exists", isExpose: true };
+      if (Array.isArray(target) && target.includes("email"))
+        throw { message: "Email already exists", isExpose: true };
+      if (Array.isArray(target) && target.includes("phone_number"))
+        throw { message: "Phone number already exists", isExpose: true };
     }
     console.error("createUserAdminService err:", err);
     throw { message: err?.message || "Failed to create user", isExpose: false };
@@ -173,7 +325,12 @@ export const createUserAdminService = async (payload: CreateUserArgs) => {
 };
 
 /* list users with pagination + filter */
-export const listUsersAdminService = async ({ role, page = 1, limit = 20, q }: ListOpts) => {
+export const listUsersAdminService = async ({
+  role,
+  page = 1,
+  limit = 20,
+  q,
+}: ListOpts) => {
   const skip = (page - 1) * limit;
   const where: any = { deletedAt: null };
 
@@ -242,9 +399,14 @@ export const getUserAdminByIdService = async ({ id }: { id: string }) => {
   }
 };
 
-export const updateUserAdminService = async ({ id, payload }: UpdateUserArgs) => {
+export const updateUserAdminService = async ({
+  id,
+  payload,
+}: UpdateUserArgs) => {
   // cek dulu user ada
-  const existing = await prisma.user.findFirst({ where: { id, deletedAt: null } });
+  const existing = await prisma.user.findFirst({
+    where: { id, deletedAt: null },
+  });
   if (!existing) throw { message: "User not found", isExpose: true };
 
   try {
@@ -253,10 +415,15 @@ export const updateUserAdminService = async ({ id, payload }: UpdateUserArgs) =>
 
     if (payload.fullName !== undefined) data.fullName = payload.fullName;
     if (payload.email !== undefined) data.email = payload.email;
-    if (payload.dateOfBirth !== undefined) data.dateOfBirth = payload.dateOfBirth ? new Date(payload.dateOfBirth as any) : null;
-    if (payload.phoneNumber !== undefined) data.phoneNumber = payload.phoneNumber;
+    if (payload.dateOfBirth !== undefined)
+      data.dateOfBirth = payload.dateOfBirth
+        ? new Date(payload.dateOfBirth as any)
+        : null;
+    if (payload.phoneNumber !== undefined)
+      data.phoneNumber = payload.phoneNumber;
     if (payload.status !== undefined) data.status = payload.status;
-    if (payload.photoProfile !== undefined) data.photoProfile = payload.photoProfile;
+    if (payload.photoProfile !== undefined)
+      data.photoProfile = payload.photoProfile;
 
     // jangan izinkan change role lewat endpoint ini (security)
     // if (payload.userRole !== undefined) data.userRole = payload.userRole; // uncomment only if allowed & validated
@@ -290,8 +457,10 @@ export const updateUserAdminService = async ({ id, payload }: UpdateUserArgs) =>
   } catch (err: any) {
     if (err?.code === "P2002") {
       const target = err?.meta?.target;
-      if (Array.isArray(target) && target.includes("email")) throw { message: "Email already exists", isExpose: true };
-      if (Array.isArray(target) && target.includes("phone_number")) throw { message: "Phone number already exists", isExpose: true };
+      if (Array.isArray(target) && target.includes("email"))
+        throw { message: "Email already exists", isExpose: true };
+      if (Array.isArray(target) && target.includes("phone_number"))
+        throw { message: "Phone number already exists", isExpose: true };
     }
     console.error("updateUserAdminService err:", err);
     throw { message: err?.message || "Failed to update user", isExpose: false };
@@ -301,13 +470,18 @@ export const updateUserAdminService = async ({ id, payload }: UpdateUserArgs) =>
 /* soft delete user */
 export const deleteUserAdminService = async ({ id }: { id: string }) => {
   try {
-    const existing = await prisma.user.findFirst({ where: { id, deletedAt: null } });
+    const existing = await prisma.user.findFirst({
+      where: { id, deletedAt: null },
+    });
     if (!existing) throw { message: "User not found", isExpose: true };
 
     // optional: revoke refresh tokens here if you store them
     // await prisma.refreshToken.deleteMany({ where: { userId: id } });
 
-    await prisma.user.update({ where: { id }, data: { deletedAt: new Date() } });
+    await prisma.user.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
 
     return;
   } catch (err: any) {

@@ -8,13 +8,15 @@ import * as stockController from "../controllers/stock.controller";
 import { authMiddleware } from "../middlewares/auth.middleware";
 import { ensureRole, ensureStoreOwnership } from "../middlewares/role.middleware";
 import { upload } from "../middlewares/multer.middleware";
+import orderRouter from "./order.router";
 
 const mainRouter = Router();
 
 mainRouter.use("/api/auth", authRouter);
 mainRouter.use("/api/users", userRouter);
 mainRouter.use("/api/stores", storeRouter);
-mainRouter.use("/api/cart", cartRouter)
+mainRouter.use("/api/cart", cartRouter);;
+mainRouter.use("/api/orders", orderRouter)
 // Product
 mainRouter.get("/products", productController.listProductsHandler);
 mainRouter.get("/products/:id", productController.getProductHandler);

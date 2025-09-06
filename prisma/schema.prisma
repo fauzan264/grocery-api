@@ -84,12 +84,13 @@ model Order {
   totalPrice   Int          @map("total_price")
   discount     Int
   finalPrice   Int          @map("final_price")
-  paymentProof String       @map("payment_proof")
+  paymentProof String?       @map("payment_proof")
   createdAt    DateTime     @default(now()) @map("created_at")
   updatedAt    DateTime     @updatedAt @map("updated_at")
   deletedAt    DateTime?    @map("deleted_at")
   userId       String       @map("user_id") @db.VarChar(36)
   status       OrderStatus
+
   OrderItems   OrderItems[]
   user         User         @relation(fields: [userId], references: [id])
   Shipment     Shipment?

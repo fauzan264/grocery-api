@@ -195,6 +195,7 @@ model ProductImage {
   id        String   @id @default(uuid()) @db.VarChar(36)
   productId String   @map("product_id") @db.VarChar(36)
   url       String   @db.VarChar(255)
+  publicId  String?  @map("public_id") @db.VarChar(255)
   altText   String?  @map("alt_text") @db.VarChar(255)
   isPrimary Boolean  @default(false) @map("is_primary")
   createdAt DateTime @default(now()) @map("created_at")

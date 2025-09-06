@@ -15,17 +15,14 @@ export const authMiddleware = (
   res: Response,
   next: NextFunction
 ) => {
-    console.log("Authorization Header:", req.headers.authorization);
-    console.log("JWT_SECRET_KEY:", process.env.JWT_SECRET_KEY);
   const authHeader = req.headers.authorization;
-  if (!authHeader) {
-    return res.status(401).json({ success: false, message: "No token" });
+
+  // Pastikan format: "Bearer <token>"
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ success: false, message: "No token provided" });
   }
 
   const token = authHeader.split(" ")[1];
-  if (!token) {
-    return res.status(401).json({ success: false, message: "No token" });
-  }
 
   try {
     const secret = process.env.JWT_SECRET_KEY as string;
@@ -35,18 +32,26 @@ export const authMiddleware = (
       stores?: string[];
     };
 
-    console.log("Decoded JWT:", payload);
+    // Debug log hanya saat development
+    if (process.env.NODE_ENV !== "production") {
+      console.log("Decoded JWT:", payload);
+    }
 
-    // mapping ke req.user
+    // Validasi role
+    const validRoles = ["SUPER_ADMIN", "ADMIN_STORE", "CUSTOMER"] as const;
+    if (!validRoles.includes(payload.role as any)) {
+      return res.status(403).json({ success: false, message: "Invalid role" });
+    }
+
+    // Mapping ke req.user
     req.user = {
       sub: payload.sub,
       role: payload.role as "SUPER_ADMIN" | "ADMIN_STORE" | "CUSTOMER",
       stores: payload.stores,
     };
 
-    next(); // penting! supaya lanjut ke controller berikutnya
+    next();
   } catch (err) {
     return res.status(401).json({ success: false, message: "Invalid token" });
   }
 };
-

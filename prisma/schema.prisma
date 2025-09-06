@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
   output   = "../src/generated/prisma"
@@ -16,28 +10,258 @@ datasource db {
 }
 
 model User {
-  id           String   @id @default(uuid()) @db.VarChar(36)
-  fullName     String   @map("full_name") @db.VarChar(100)
-  dateOfBirth  DateTime @map("date_of_birth") @db.Date
-  email        String   @unique @db.VarChar(100)
-  password     String?  @db.VarChar(100)
-  phoneNumber  String?  @unique @map("phone_number") @db.VarChar(15)
-  photoProfile String?  @map("photo_profile") @db.VarChar(100)
-  verified     Boolean? @default(false)
-
-  userRole UserRole   @map("user_role")
-  status   UserStatus @default(INACTIVE)
-
-  UserStore    UserStore[]
-  UserAddress  UserAddress?
+  id           String         @id @default(uuid()) @db.VarChar(36)
+  fullName     String         @map("full_name") @db.VarChar(100)
+  dateOfBirth  DateTime       @map("date_of_birth") @db.Date
+  email        String         @unique @db.VarChar(100)
+  password     String?        @db.VarChar(100)
+  phoneNumber  String?        @unique @map("phone_number") @db.VarChar(15)
+  photoProfile String?        @map("photo_profile") @db.VarChar(100)
+  verified     Boolean?       @default(false)
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+  deletedAt    DateTime?      @map("deleted_at")
+  userRole     UserRole       @map("user_role")
+  status       UserStatus     @default(INACTIVE)
   Order        Order[]
   ShoppingCart ShoppingCart[]
+  UserAddress  UserAddress?
+  UserStore    UserStore[]
 
+  @@map("users")
+}
+
+model UserAddress {
+  id          String    @id @default(uuid()) @db.VarChar(36)
+  city        String    @db.VarChar(100)
+  province    String    @db.VarChar(100)
+  subdistrict String    @db.VarChar(100)
+  address     String
+  latitude    Decimal   @db.Decimal(9, 6)
+  longitude   Decimal   @db.Decimal(9, 6)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+  userId      String    @unique @map("user_id") @db.VarChar(36)
+  user        User      @relation(fields: [userId], references: [id])
+
+  @@map("user_addresses")
+}
+
+model Store {
+  id          String      @id @default(uuid()) @db.VarChar(36)
+  name        String      @db.VarChar(100)
+  logo        String      @db.VarChar(100)
+  description String
+  city        String      @db.VarChar(100)
+  province    String      @db.VarChar(100)
+  subdistrict String      @db.VarChar(100)
+  address     String
+  latitude    Decimal     @db.Decimal(9, 6)
+  longitude   Decimal     @db.Decimal(9, 6)
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+  deletedAt   DateTime?   @map("deleted_at")
+  status      StoreStatus
+  stocks      Stock[]
+  UserStore   UserStore[]
+
+  @@map("stores")
+}
+
+model UserStore {
+  userId  String
+  storeId String
+  store   Store  @relation(fields: [storeId], references: [id])
+  user    User   @relation(fields: [userId], references: [id])
+
+  @@id([userId, storeId])
+  @@map("user_stores")
+}
+
+model Order {
+  id           String       @id @default(uuid()) @db.VarChar(36)
+  totalPrice   Int          @map("total_price")
+  discount     Int
+  finalPrice   Int          @map("final_price")
+  paymentProof String       @map("payment_proof")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+  deletedAt    DateTime?    @map("deleted_at")
+  userId       String       @map("user_id") @db.VarChar(36)
+  status       OrderStatus
+  OrderItems   OrderItems[]
+  user         User         @relation(fields: [userId], references: [id])
+  Shipment     Shipment?
+
+  @@map("orders")
+}
+
+model OrderItems {
+  id        String    @id @default(uuid()) @db.VarChar(36)
+  quantity  Int
+  price     Int
+  subTotal  Int       @map("sub_total")
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
+  orderId   String    @map("order_id") @db.VarChar(36)
+  productId String    @map("product_id") @db.VarChar(36)
+  order     Order     @relation(fields: [orderId], references: [id])
+  product   Product   @relation(fields: [productId], references: [id])
 
-  @@map("users")
+  @@map("order_items")
+}
+
+model Shipment {
+  id             String    @id @default(uuid()) @db.VarChar(36)
+  orderId        String    @unique @map("order_id") @db.VarChar(36)
+  trackingNumber String    @unique @map("tracking_number") @db.VarChar(50)
+  courier        String    @db.VarChar(10)
+  service        String    @db.VarChar(30)
+  shippingCost   Int       @map("shipping_cost")
+  shippingDays   String    @map("shipping_days") @db.VarChar(30)
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  deletedAt      DateTime? @map("deleted_at")
+  order          Order     @relation(fields: [orderId], references: [id])
+
+  @@map("shipments")
+}
+
+model ShoppingCart {
+  id               String             @id @default(uuid()) @db.VarChar(36)
+  createdAt        DateTime           @default(now()) @map("created_at")
+  updatedAt        DateTime           @updatedAt @map("updated_at")
+  deletedAt        DateTime?          @map("deleted_at")
+  isActive         Boolean            @default(true) @map("is_active")
+  userId           String             @map("user_id") @db.VarChar(36)
+  ShoppingCartItem ShoppingCartItem[]
+  user             User               @relation(fields: [userId], references: [id])
+
+  @@map("shopping_carts")
+}
+
+model ShoppingCartItem {
+  id        String       @id @default(uuid()) @db.VarChar(36)
+  cartId    String       @map("cart_id") @db.VarChar(36)
+  productId String       @map("product_id") @db.VarChar(36)
+  quantity  Int
+  price     Int
+  subTotal  Int          @map("sub_total")
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+  deletedAt DateTime?    @map("deleted_at")
+  cart      ShoppingCart @relation(fields: [cartId], references: [id])
+  product   Product      @relation(fields: [productId], references: [id])
+
+  @@map("shopping_cart_items")
+}
+
+model Category {
+  id        String    @id @default(uuid()) @db.VarChar(36)
+  name      String    @unique @db.VarChar(100)
+  slug      String?   @unique @db.VarChar(150)
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  products  Product[]
+
+  @@map("categories")
+}
+
+model Product {
+  id               String             @id @default(uuid()) @db.VarChar(36)
+  name             String             @unique @db.VarChar(200)
+  sku              String?            @unique @db.VarChar(50)
+  description      String?
+  price            Int
+  isActive         Boolean            @default(true) @map("is_active")
+  categoryId       String?            @map("category_id") @db.VarChar(36)
+  createdAt        DateTime           @default(now()) @map("created_at")
+  updatedAt        DateTime           @updatedAt @map("updated_at")
+  deletedAt        DateTime?          @map("deleted_at")
+  weight_g         Int?               @map("weight_g")
+  OrderItems       OrderItems[]
+  ProductDiscounts ProductDiscount[]
+  images           ProductImage[]
+  category         Category?          @relation(fields: [categoryId], references: [id])
+  ShoppingCartItem ShoppingCartItem[]
+  stocks           Stock[]
+
+  @@map("products")
+}
+
+model ProductImage {
+  id        String   @id @default(uuid()) @db.VarChar(36)
+  productId String   @map("product_id") @db.VarChar(36)
+  url       String   @db.VarChar(255)
+  altText   String?  @map("alt_text") @db.VarChar(255)
+  isPrimary Boolean  @default(false) @map("is_primary")
+  createdAt DateTime @default(now()) @map("created_at")
+  product   Product  @relation(fields: [productId], references: [id])
+
+  @@map("product_images")
+}
+
+model Stock {
+  id        String         @id @default(uuid()) @db.VarChar(36)
+  productId String         @map("product_id") @db.VarChar(36)
+  storeId   String         @map("store_id") @db.VarChar(36)
+  quantity  Int            @default(0)
+  createdAt DateTime       @default(now()) @map("created_at")
+  updatedAt DateTime       @updatedAt @map("updated_at")
+  journals  StockJournal[]
+  product   Product        @relation(fields: [productId], references: [id])
+  store     Store          @relation(fields: [storeId], references: [id])
+
+  @@unique([productId, storeId], name: "productId_storeId")
+  @@map("stocks")
+}
+
+model StockJournal {
+  id           String            @id @default(uuid()) @db.VarChar(36)
+  stockId      String            @map("stock_id") @db.VarChar(36)
+  quantityOld  Int               @map("quantity_old")
+  quantityDiff Int               @map("quantity_diff")
+  quantityNew  Int               @map("quantity_new")
+  reason       String?
+  createdBy    String?           @map("created_by") @db.VarChar(36)
+  createdAt    DateTime          @default(now()) @map("created_at")
+  changeType   StockChangeType   @map("change_type")
+  journalType  StockJournalType? @map("journal_type")
+  stock        Stock             @relation(fields: [stockId], references: [id])
+
+  @@map("stock_journals")
+}
+
+model Discount {
+  id               String            @id @default(uuid()) @db.VarChar(36)
+  code             String?           @unique @db.VarChar(100)
+  name             String            @db.VarChar(150)
+  isPercentage     Boolean           @default(false) @map("is_percentage")
+  value            Int
+  minSpend         Int?              @map("min_spend")
+  buyQuantity      Int?              @map("buy_quantity")
+  freeQuantity     Int?              @map("free_quantity")
+  isActive         Boolean           @default(true) @map("is_active")
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
+  discountType     DiscountType      @map("discount_type")
+  ProductDiscounts ProductDiscount[]
+
+  @@map("discounts")
+}
+
+model ProductDiscount {
+  id         String   @id @default(uuid()) @db.VarChar(36)
+  productId  String   @map("product_id") @db.VarChar(36)
+  discountId String   @map("discount_id") @db.VarChar(36)
+  createdAt  DateTime @default(now()) @map("created_at")
+  discount   Discount @relation(fields: [discountId], references: [id], onDelete: Cascade)
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, discountId])
+  @@map("product_discounts")
 }
 
 enum UserStatus {
@@ -55,102 +279,11 @@ enum UserRole {
   @@map("user_roles")
 }
 
-model UserAddress {
-  id          String  @id @default(uuid()) @db.VarChar(36)
-  city        String  @db.VarChar(100)
-  province    String  @db.VarChar(100)
-  subdistrict String  @db.VarChar(100)
-  address     String
-  latitude    Decimal @db.Decimal(9, 6)
-  longitude   Decimal @db.Decimal(9, 6)
-  userId      String  @unique @map("user_id") @db.VarChar(36)
-
-  user User @relation(fields: [userId], references: [id])
-
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-  deletedAt DateTime? @map("deleted_at")
-
-  @@map("user_addresses")
-}
-
-model Store {
-  id          String      @id @default(uuid()) @db.VarChar(36)
-  name        String      @db.VarChar(100)
-  logo        String      @db.VarChar(100)
-  description String
-  status      StoreStatus
-  city        String      @db.VarChar(100)
-  province    String      @db.VarChar(100)
-  subdistrict String      @db.VarChar(100)
-  address     String
-  latitude    Decimal     @db.Decimal(9, 6)
-  longitude   Decimal     @db.Decimal(9, 6)
-
-  UserStore UserStore[]
-  stocks    Stock[]
-
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-  deletedAt DateTime? @map("deleted_at")
-
-  @@map("stores")
-}
-
 enum StoreStatus {
   ACTIVE
   INACTIVE
 
   @@map("store_status")
-}
-
-model UserStore {
-  userId  String
-  storeId String
-
-  user  User  @relation(fields: [userId], references: [id], onDelete: Restrict)
-  store Store @relation(fields: [storeId], references: [id], onDelete: Restrict)
-
-  @@id([userId, storeId])
-  @@map("user_stores")
-}
-
-model Order {
-  id           String      @id @default(uuid()) @db.VarChar(36)
-  userId       String      @map("user_id") @db.VarChar(36)
-  totalPrice   Int         @map("total_price")
-  discount     Int
-  finalPrice   Int         @map("final_price")
-  status       OrderStatus
-  paymentProof String      @map("payment_proof")
-
-  user User @relation(fields: [userId], references: [id])
-
-  createdAt  DateTime     @default(now()) @map("created_at")
-  updatedAt  DateTime     @updatedAt @map("updated_at")
-  deletedAt  DateTime?    @map("deleted_at")
-  OrderItems OrderItems[]
-  Shipment   Shipment?
-
-  @@map("orders")
-}
-
-model OrderItems {
-  id        String @id @default(uuid()) @db.VarChar(36)
-  orderId   String @map("order_id") @db.VarChar(36)
-  productId String @map("product_id") @db.VarChar(36)
-  quantity  Int
-  price     Int
-  subTotal  Int    @map("sub_total")
-
-  order   Order   @relation(fields: [orderId], references: [id])
-  product Product @relation(fields: [productId], references: [id])
-
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-  deletedAt DateTime? @map("deleted_at")
-
-  @@map("order_items")
 }
 
 enum OrderStatus {
@@ -164,128 +297,6 @@ enum OrderStatus {
   @@map("order_status")
 }
 
-model Shipment {
-  id             String @id @default(uuid()) @db.VarChar(36)
-  orderId        String @unique @map("order_id") @db.VarChar(36)
-  trackingNumber String @unique @map("tracking_number") @db.VarChar(50)
-  courier        String @db.VarChar(10)
-  service        String @db.VarChar(30)
-  shippingCost   Int    @map("shipping_cost")
-  shippingDays   String @map("shipping_days") @db.VarChar(30)
-
-  order Order @relation(fields: [orderId], references: [id])
-
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-  deletedAt DateTime? @map("deleted_at")
-
-  @@map("shipments")
-}
-
-model ShoppingCart {
-  id       String  @id @default(uuid()) @db.VarChar(36)
-  userId   String  @map("user_id") @db.VarChar(36)
-  isActive Boolean @default(true) @map("is_active")
-
-  user User @relation(fields: [userId], references: [id])
-
-  createdAt        DateTime           @default(now()) @map("created_at")
-  updatedAt        DateTime           @updatedAt @map("updated_at")
-  deletedAt        DateTime?          @map("deleted_at")
-  ShoppingCartItem ShoppingCartItem[]
-
-  @@map("shopping_carts")
-}
-
-model ShoppingCartItem {
-  id        String @id @default(uuid()) @db.VarChar(36)
-  cartId    String @map("cart_id") @db.VarChar(36)
-  productId String @map("product_id") @db.VarChar(36)
-  quantity  Int
-  price     Int
-  subTotal  Int    @map("sub_total")
-
-  cart ShoppingCart @relation(fields: [cartId], references: [id])
-  product Product      @relation(fields: [productId], references: [id])
-
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-  deletedAt DateTime? @map("deleted_at")
-
-  @@map("shopping_cart_items")
-}
-
-model Category {
-  id       String    @id @default(uuid()) @db.VarChar(36)
-  name     String    @unique @db.VarChar(100)
-  slug     String?   @unique @db.VarChar(150)
-  products Product[]
-
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  @@map("categories")
-}
-
-model Product {
-  id          String         @id @default(uuid()) @db.VarChar(36)
-  name        String         @unique @db.VarChar(200) // no duplicate product name (global)
-  sku         String         @unique @db.VarChar(100)
-  description String?
-  price       Int            // price in smallest currency unit (IDR)
-  weight_g    Int?           @map("weight_g")        // berat dalam gram
-  isActive    Boolean        @default(true) @map("is_active")
-  categoryId  String?        @map("category_id") @db.VarChar(36)
-  category    Category?      @relation(fields: [categoryId], references: [id])
-  images      ProductImage[]
-  stocks      Stock[]
-  createdAt   DateTime       @default(now()) @map("created_at")
-  updatedAt   DateTime       @updatedAt @map("updated_at")
-  deletedAt   DateTime?      @map("deleted_at")
-
-  ProductDiscounts ProductDiscount[]
-  OrderItems       OrderItems[]
-  ShoppingCartItem ShoppingCartItem[]
-
-  @@map("products")
-  @@unique([name])
-}
-
-model ProductImage {
-  id         String   @id @default(uuid()) @db.VarChar(36)
-  productId  String   @map("product_id") @db.VarChar(36)
-  url        String   @db.VarChar(500)
-  publicId   String?  @map("public_id") @db.VarChar(255) // cloudinary public_id
-  altText    String?  @map("alt_text") @db.VarChar(255)
-  isPrimary  Boolean  @default(false) @map("is_primary")
-
-  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  createdAt  DateTime @default(now()) @map("created_at")
-
-  @@map("product_images")
-  @@index([productId])
-}
-
-
-model Stock {
-  id        String @id @default(uuid()) @db.VarChar(36)
-  productId String @map("product_id") @db.VarChar(36)
-  storeId   String @map("store_id") @db.VarChar(36)
-  quantity  Int    @default(0)
-
-  product Product @relation(fields: [productId], references: [id])
-  store   Store   @relation(fields: [storeId], references: [id])
-
-  journals StockJournal[]
-
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  @@unique([productId, storeId], name: "productId_storeId")
-  @@map("stocks")
-}
-
 enum StockChangeType {
   INCREASE
   DECREASE
@@ -295,78 +306,26 @@ enum StockChangeType {
 }
 
 enum StockJournalType {
-  PURCHASE     // masuk dari pembelian supplier
-  SALE         // berkurang karena penjualan
-  RETURN       // retur / pengembalian
-  TRANSFER     // pindah antar store
-  ADJUSTMENT   // penyesuaian stok manual
+  PURCHASE
+  SALE
+  RETURN
+  TRANSFER
+  ADJUSTMENT
   OTHER
 
   @@map("stock_journal_type")
 }
 
-model StockJournal {
-  id           String          @id @default(uuid()) @db.VarChar(36)
-  stockId      String          @map("stock_id") @db.VarChar(36)
-  changeType   StockChangeType @map("change_type")
-  journalType  StockJournalType? @map("journal_type")
-  quantityOld  Int             @map("quantity_old")
-  quantityDiff Int             @map("quantity_diff")
-  quantityNew  Int             @map("quantity_new")
-  reason       String?
-  createdBy    String?         @map("created_by") @db.VarChar(36) // user who made change (admin)
-  createdAt    DateTime        @default(now()) @map("created_at")
-
-  stock Stock @relation(fields: [stockId], references: [id])
-
-  @@map("stock_journals")
-}
-
-/**
- * Discount rules:
- * - discountType: MANUAL (applied manually to product)
- * MIN_SPEND (minSpend must be met)
- * BUY_X_GET_Y (buyQuantity + freeQuantity)
- * - value: integer amount or percent depending on isPercentage flag
- */
+/// *
+///  * Discount rules:
+///  * - discountType: MANUAL (applied manually to product)
+///  * MIN_SPEND (minSpend must be met)
+///  * BUY_X_GET_Y (buyQuantity + freeQuantity)
+///  * - value: integer amount or percent depending on isPercentage flag
 enum DiscountType {
   MANUAL
   MIN_SPEND
   BUY_X_GET_Y
 
   @@map("discount_type")
-}
-
-model Discount {
-  id           String       @id @default(uuid()) @db.VarChar(36)
-  code         String?      @unique @db.VarChar(100)
-  name         String       @db.VarChar(150)
-  discountType DiscountType @map("discount_type")
-  isPercentage Boolean      @default(false) @map("is_percentage")
-  value        Int // if isPercentage = true -> 10 = 10% ; if false -> nominal value in currency unit
-  minSpend     Int?         @map("min_spend") // for MIN_SPEND
-  buyQuantity  Int?         @map("buy_quantity") // for BUY_X_GET_Y
-  freeQuantity Int?         @map("free_quantity") // for BUY_X_GET_Y
-  isActive     Boolean      @default(true) @map("is_active")
-
-  ProductDiscounts ProductDiscount[]
-
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  @@map("discounts")
-}
-
-model ProductDiscount {
-  id         String @id @default(uuid()) @db.VarChar(36)
-  productId  String @map("product_id") @db.VarChar(36)
-  discountId String @map("discount_id") @db.VarChar(36)
-
-  product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  discount Discount @relation(fields: [discountId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now()) @map("created_at")
-
-  @@unique([productId, discountId])
-  @@map("product_discounts")
 }

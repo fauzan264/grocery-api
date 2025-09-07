@@ -3,6 +3,7 @@ import mainRouter from "./routes/index.router";
 import cors from "cors";
 import dotenv from "dotenv";
 import { expiryTransactionSchedule } from "./jobs/cron/expiry.transaction.schedule";
+import { confirmTransactionSchedule } from "./jobs/cron/confirm.transaction.schedule";
 
 dotenv.config();
 
@@ -22,6 +23,7 @@ app.use((error: any, req: Request, res: Response, next: NextFunction) => {
 });
 
 expiryTransactionSchedule()
+confirmTransactionSchedule()
 
 app.listen(port, () => {
   console.log(`⚡️ Server is running on port ${port}`);

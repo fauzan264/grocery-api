@@ -2,7 +2,7 @@ import { prisma } from "../../db/connection";
 import { OrderStatus } from "../../generated/prisma";
 
 export const expiryTransactionJobs = async () => {
-    const oneHourAgo = new Date(Date.now() - 1000 * 60 );
+    const oneHourAgo = new Date(Date.now() - 1000 * 60 * 60);
 
     const unpaidOrders = await prisma.order.findMany({
         where: {

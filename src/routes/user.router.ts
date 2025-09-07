@@ -15,16 +15,24 @@ import {
   createAddressesController,
   updateAddressesController,
   deleteAddressesController,
+  updateMyProfileController,
 } from "../controllers/user.controller";
 import { validateYup } from "../middlewares/validateYup";
 import {
   createUserAdminSchema,
   updateUserAdminSchema,
 } from "../validations/user.admin.validation";
+import { uploaderMulter } from "../middlewares/uploader.multer";
 
 const userRouter = Router();
 
 userRouter.get("/me", jwtVerify, getMyProfileController);
+userRouter.put(
+  "/me",
+  jwtVerify,
+  uploaderMulter(["image"], "memoryStorage").single("photo_profile"),
+  updateMyProfileController
+);
 userRouter.get("/:userId/addresses", jwtVerify, getMyAddressesController);
 userRouter.get(
   "/:userId/addresses/:addressId",

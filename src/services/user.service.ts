@@ -6,8 +6,11 @@ import {
   IDeleteAddressesServiceProps,
   IGetMyAddressesByIDServiceProps,
   IUpdateAddressesServiceProps,
+  IUpdateMyProfileServiceProps,
+  PhotoProfile,
 } from "../types/user";
 import bcrypt from "bcrypt";
+import { cloudinaryUpload } from "../lib/cloudinary.upload";
 
 /* ========== Config / Helpers ========== */
 const SALT_ROUNDS = Number(process.env.BCRYPT_SALT_ROUNDS || 10);
@@ -32,6 +35,55 @@ export const getMyProfileService = async ({ id }: Pick<User, "id">) => {
   if (!user) {
     throw { message: "User not found", isExpose: true };
   }
+
+  return snakecaseKeys(user);
+};
+
+export const updateMyProfileService = async ({
+  id,
+  fullName,
+  dateOfBirth,
+  email,
+  phoneNumber,
+  photoProfile,
+}: IUpdateMyProfileServiceProps) => {
+  const getUser = await prisma.user.findUnique({
+    where: { id },
+  });
+
+  if (!getUser) {
+    throw { message: "User not found", isExpose: true };
+  }
+
+  let createPhoto: PhotoProfile = { imageUrl: "" };
+  if (photoProfile) {
+    const uploadPhoto = async () => {
+      const res: any = await cloudinaryUpload(
+        photoProfile?.buffer,
+        "photo-profile"
+      );
+
+      return { imageUrl: res.secureUrl };
+    };
+
+    createPhoto = await uploadPhoto();
+  } else {
+    createPhoto.imageUrl = getUser?.photoProfile;
+  }
+
+  const user = await prisma.user.update({
+    where: { id },
+    data: {
+      fullName: fullName ? fullName : getUser?.fullName,
+      dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : getUser?.dateOfBirth,
+      email: email ? email : getUser?.email,
+      phoneNumber: phoneNumber ? phoneNumber : getUser.phoneNumber,
+      photoProfile: createPhoto.imageUrl,
+    },
+    omit: {
+      deletedAt: true,
+    },
+  });
 
   return snakecaseKeys(user);
 };

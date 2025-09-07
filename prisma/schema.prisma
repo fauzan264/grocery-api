@@ -92,6 +92,8 @@ model Order {
   status       OrderStatus
 
   OrderItems OrderItems[]
+  StatusLogs  OrderStatusLog[]
+
   user       User         @relation(fields: [userId], references: [id])
   Shipment   Shipment?
 
@@ -113,6 +115,22 @@ model OrderItems {
 
   @@map("order_items")
 }
+
+model OrderStatusLog {
+  id        String      @id @default(uuid()) @db.VarChar(36)
+  orderId   String      @map("order_id") @db.VarChar(36)
+  oldStatus OrderStatus @map("old_status")
+  newStatus OrderStatus @map("new_status")
+  changedBy String?     @map("changed_by") @db.VarChar(36) 
+  note      String?     @db.Text
+  createdAt DateTime    @default(now()) @map("created_at")
+
+  order     Order       @relation(fields: [orderId], references: [id])
+
+  @@map("order_status_logs")
+}
+
+
 
 model Shipment {
   id             String    @id @default(uuid()) @db.VarChar(36)
@@ -289,6 +307,7 @@ enum StoreStatus {
 }
 
 enum OrderStatus {
+  INITIAL
   WAITING_FOR_PAYMENT
   WAITING_CONFIRMATION_PAYMENT
   IN_PROCESS

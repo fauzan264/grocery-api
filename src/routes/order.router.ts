@@ -6,6 +6,6 @@ import { createOrderController, getOrdersByUserController } from "../controllers
 const orderRouter = Router ()
 
 orderRouter.post("/checkout", jwtVerify,  createOrderController);
-orderRouter.get("/:userId", jwtVerify, getOrdersByUserController)
+orderRouter.get("/me", jwtVerify, getOrdersByUserController)
 
 export default orderRouter;

@@ -2,16 +2,16 @@ import { prisma } from "../db/connection";
 import { ShoppingCart, ShoppingCartItem } from "../generated/prisma";
 import { IAddtoCart, IUpdateCart } from "../types/cart";
 
-export const AddtoCartService = async({userId, productId, quantity}: IAddtoCart) => {
+export const AddtoCartService = async({user_id, productId, quantity}: IAddtoCart) => {
 
     //Cek active cart
     let cart = await prisma.shoppingCart.findFirst({
-        where: {userId, isActive: true}
+        where: {userId:user_id, isActive: true}
     })
 
     if(!cart) {
         cart = await prisma.shoppingCart.create({
-            data: {userId}
+            data: {userId:user_id}
         })
     }
 

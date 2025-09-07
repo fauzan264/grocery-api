@@ -1,4 +1,5 @@
 import { prisma } from "../db/connection";
+import { OrderStatus } from "../generated/prisma";
 import { cloudinaryUpload } from "../lib/cloudinary.upload";
 
 export const createOrderService = async (userId: string) => {
@@ -45,7 +46,7 @@ export const createOrderService = async (userId: string) => {
                 totalPrice,
                 discount,
                 finalPrice,
-                status: "WAITING_FOR_PAYMENT",
+                status: OrderStatus.WAITING_FOR_PAYMENT,
                 OrderItems: {
                     create: cart.ShoppingCartItem.map((item)=>{
                         return {
@@ -68,7 +69,7 @@ export const createOrderService = async (userId: string) => {
                 (acc, stock) => acc + stock.quantity, 0
             )
 
-            const stockRecord = item.product.stocks[0]; //Stock masih global, belum penerapatan store tertentu
+            const stockRecord = item.product.stocks[0]; 
 
             await tx.stock.update({
                 where: {id: stockRecord.id},
@@ -85,6 +86,20 @@ export const createOrderService = async (userId: string) => {
         await tx.shoppingCart.update({
             where: {id: cart.id},
             data : {isActive: false}
+        })
+
+        const initialOrder = await tx.order.findUnique ({where: {id:order.id}})
+        if (!initialOrder) throw { message: "Order not found", isExpose: true };
+
+        const oldStatus = "None"
+        await tx.orderStatusLog.create({
+            data:{
+                orderId:order.id,
+                oldStatus: OrderStatus.INITIAL,
+                newStatus: order.status,
+                changedBy:userId || "system",
+                note: `Order created with status ${order.status}`
+            }
         })
 
         return order

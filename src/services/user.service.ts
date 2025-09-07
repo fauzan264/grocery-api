@@ -81,6 +81,7 @@ export const updateMyProfileService = async ({
       photoProfile: createPhoto.imageUrl,
     },
     omit: {
+      password: true,
       deletedAt: true,
     },
   });

@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { createOrderService, getOrdersByUserIdService } from "../services/orders.service";
+import { cancelOrderService, confirmOrderService, createOrderService, getOrdersByUserIdService } from "../services/orders.service";
 
 export const createOrderController = async (req: Request, res: Response) => {
     console.log("Payload:", res.locals.payload);
@@ -10,6 +10,32 @@ export const createOrderController = async (req: Request, res: Response) => {
         message: "Order created successfully",
         data: order
     })
+}
+
+export const cancelOrderController = async (req: Request, res: Response)  => {
+  const { userId } = res.locals.payload;
+  const {orderId} = req.params
+
+  const cancelledOrder = await cancelOrderService(orderId, userId);
+
+  return res.status(200).json({
+    message: "Order cancelled successfully",
+    data: cancelledOrder,
+  });
+  
+}
+
+export const confirmOrderController = async (req: Request, res: Response)  => {
+  const { userId } = res.locals.payload;
+  const {orderId} = req.params
+
+  const confirmOrder = await confirmOrderService(orderId, userId);
+
+  return res.status(200).json({
+    message: "Order has been delivered to the costumer",
+    data: confirmOrder,
+  });
+  
 }
 
 export const getOrdersByUserController = async (req: Request, res: Response) => {

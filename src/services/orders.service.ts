@@ -103,6 +103,92 @@ export const createOrderService = async (userId: string) => {
     });
 }
 
+export const cancelOrderService = async (orderId: string, userId: string) => {
+    return await prisma.$transaction(async(tx) => {
+        const order = await tx.order.findUnique({
+            where: {id : orderId},
+            include: {
+            OrderItems: {
+                include:{
+                    product: {
+                        include: {stocks:true}
+                    }
+                }
+            }
+        }
+        });
+
+        if(!order) {
+            throw { message: "Order not found", isExpose: true };
+        }
+
+        if (order.status !== OrderStatus.WAITING_FOR_PAYMENT) {
+            throw { message: "Only unpaid orders can be cancelled", isExpose: true };
+        }
+
+        const cancelOrder = await tx.order.update({
+            where: {id: orderId},
+            data: {status: OrderStatus.CANCELLED}
+        })
+
+        for (const item of order.OrderItems){
+            const stocksRecord = item.product.stocks[0]
+            if (stocksRecord) {
+                await prisma.stock.update({
+                    where: {id : stocksRecord.id},
+                    data: {
+                        quantity: stocksRecord.quantity+ item.quantity
+                    }
+                })
+            }
+        }
+
+        await tx.orderStatusLog.create({
+            data:{
+                orderId:order.id,
+                oldStatus: order.status,
+                newStatus: OrderStatus.CANCELLED,
+                changedBy:"USER",
+                note: "Order cancelled by user"
+            }
+        })
+
+        return cancelOrder
+    })
+}
+
+export const confirmOrderService = async (userId: string, orderId: string) => {
+    return await prisma.$transaction(async(tx) => {
+        const order = await tx.order.findUnique({
+            where: {id : orderId}
+        })
+
+        if(!order) {
+            throw { message: "Order not found", isExpose: true };
+        }
+
+        if (order.status !== OrderStatus.DELIVERED) {
+            throw { message: "Only delivered order can be confirmed", isExpose: true };
+        }
+
+        const confirmOrder = await tx.order.update({
+            where: {id: orderId},
+            data: {status: OrderStatus.ORDER_CONFIRMATION}
+        })
+
+        await tx.orderStatusLog.create({
+            data:{
+                orderId:order.id,
+                oldStatus: order.status,
+                newStatus: OrderStatus.ORDER_CONFIRMATION,
+                changedBy:"USER",
+                note: "Order has been delivered"
+            }
+        })
+        return confirmOrder
+    }) 
+}
+
 export const getOrdersByUserIdService = async (userId: string) => {
   return await prisma.order.findMany({
     where: { userId },

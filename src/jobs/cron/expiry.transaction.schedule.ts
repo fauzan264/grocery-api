@@ -2,7 +2,7 @@ import cron from "node-cron";
 import { expiryTransactionJobs } from "./expiry.transaction.job";
 
 export const expiryTransactionSchedule = () => {
-  console.log("[CRON] Scheduler initialized ✅ (running every 5 minutes, Asia/Jakarta)");
+  console.log("[CRON] Scheduler initialized ✅ ");
 
   cron.schedule(
     "*/5 * * * *",

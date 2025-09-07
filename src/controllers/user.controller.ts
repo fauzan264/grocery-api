@@ -13,6 +13,7 @@ import {
   updateUserAdminService,
   deleteUserAdminService,
   updateAddressesService,
+  updateMyProfileService,
 } from "../services/user.service";
 
 export const getMyProfileController = async (req: Request, res: Response) => {
@@ -23,6 +24,30 @@ export const getMyProfileController = async (req: Request, res: Response) => {
   res.status(200).json({
     success: true,
     message: "Successfully fetched your profile.",
+    data: user,
+  });
+};
+
+export const updateMyProfileController = async (
+  req: Request,
+  res: Response
+) => {
+  const { user_id } = res.locals.payload;
+  const { full_name, date_of_birth, email, phone_number } = req.body;
+  const photoProfile = req.file ? req.file : undefined;
+
+  const user = await updateMyProfileService({
+    id: user_id,
+    fullName: full_name,
+    dateOfBirth: date_of_birth,
+    email,
+    phoneNumber: phone_number,
+    photoProfile,
+  });
+
+  res.status(200).json({
+    status: true,
+    message: "My Profile updated successfully",
     data: user,
   });
 };

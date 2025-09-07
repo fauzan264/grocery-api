@@ -88,16 +88,12 @@ export const createOrderService = async (userId: string) => {
             data : {isActive: false}
         })
 
-        const initialOrder = await tx.order.findUnique ({where: {id:order.id}})
-        if (!initialOrder) throw { message: "Order not found", isExpose: true };
-
-        const oldStatus = "None"
         await tx.orderStatusLog.create({
             data:{
                 orderId:order.id,
                 oldStatus: OrderStatus.INITIAL,
                 newStatus: order.status,
-                changedBy:userId || "system",
+                changedBy:"SYSTEM",
                 note: `Order created with status ${order.status}`
             }
         })

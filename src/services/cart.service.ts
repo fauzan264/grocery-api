@@ -125,6 +125,8 @@ export const deleteCartService = async ({
     return {message: "Item removed from cart successfully" }
 }
 
+
+
 export const getCartItemsService = async (userId: string) => {
   const cart = await prisma.shoppingCart.findFirst({
     where: { userId, isActive: true },

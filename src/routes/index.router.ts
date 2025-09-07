@@ -11,19 +11,23 @@ import { upload } from "../middlewares/multer.middleware";
 import orderRouter from "./order.router";
 import { authorizeRoles } from "../middlewares/authorizeRoles.middleware";
 import { authorizeStore } from "../middlewares/authorizeStore.middleware";
+import paymentRouter from "./payment.router";
 
 const mainRouter = Router();
 
 mainRouter.use("/api/auth", authRouter);
 mainRouter.use("/api/users", userRouter);
 mainRouter.use("/api/stores", storeRouter);
-mainRouter.use("/api/cart", cartRouter);;
-mainRouter.use("/api/orders", orderRouter)
+mainRouter.use("/api/cart", cartRouter);
+mainRouter.use("/api/orders", orderRouter);
+mainRouter.use("/api/payment",paymentRouter);
+
 // Product
 mainRouter.get("/products", productController.listProductsHandler);
 mainRouter.get("/products/:id", productController.getProductHandler);
 mainRouter.patch("/:id", productController.updateProductHandler);
 mainRouter.delete("/:id", productController.softDeleteProductHandler);
+
 // SUPER_ADMIN only create
 mainRouter.post("/products", authMiddleware, ensureRole("SUPER_ADMIN"), upload.array("images", 5), productController.createProductHandler);
 mainRouter.delete("/products/images/:imageId", authMiddleware, ensureRole("SUPER_ADMIN"), productController.deleteProductImageHandler);

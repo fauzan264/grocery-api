@@ -1,26 +1,19 @@
-import { prisma } from "../../db/connection";
-import { OrderStatus } from "../../generated/prisma";
+import cron from "node-cron";
+import { expiryTransactionJobs } from "./expiry.transaction.job";
 
-export const expiryTransactionJobs = async () => {
-    const oneHourAgo = new Date(Date.now() - 1000 * 60 * 60);
+export const expiryTransactionSchedule = () => {
+  console.log("[CRON] Scheduler initialized ✅ (running every 5 minutes, Asia/Jakarta)");
 
-    const unpaidOrders = await prisma.order.findMany({
-        where: {
-            status: OrderStatus.WAITING_FOR_PAYMENT,
-            createdAt: {lt: oneHourAgo}
-        }
-    })
-
-    for (const order of unpaidOrders) {
-        await prisma.orderStatusLog.create({
-            data: {
-                orderId: order.id,
-                oldStatus: order.status,
-                newStatus: OrderStatus.CANCELLED,
-                changedBy: "SYSTEM" ,
-                note: 'Order expired (no payment within 1 hour)',
-            }
-        })
-        console.log(`[CRON] Order ${order.id} cancelled due to no payment`);
+  cron.schedule(
+    "*/5 * * * *",
+    async () => {
+      const now = new Date().toLocaleString("id-ID", { timeZone: "Asia/Jakarta" });
+      console.log(`[CRON] Checking for unpaid orders older than 1 hour... at ${now}`);
+      await expiryTransactionJobs();
+      console.log(`[CRON] Job finished at ${now}`);
+    },
+    {
+      timezone: "Asia/Jakarta",
     }
-}
+  );
+};

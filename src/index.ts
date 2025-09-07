@@ -2,6 +2,7 @@ import express, { Express, Request, Response, NextFunction } from "express";
 import mainRouter from "./routes/index.router";
 import cors from "cors";
 import dotenv from "dotenv";
+import { expiryTransactionSchedule } from "./jobs/cron/expiry.transaction.schedule";
 
 dotenv.config();
 
@@ -19,6 +20,8 @@ app.use((error: any, req: Request, res: Response, next: NextFunction) => {
     message: error?.isExpose ? error?.message : "Internal server error",
   });
 });
+
+expiryTransactionSchedule()
 
 app.listen(port, () => {
   console.log(`⚡️ Server is running on port ${port}`);

@@ -12,6 +12,15 @@ export const expiryTransactionJobs = async () => {
     })
 
     for (const order of unpaidOrders) {
+        await prisma.orderStatusLog.create({
+            data: {
+                orderId: order.id,
+                oldStatus: order.status,
+                newStatus: OrderStatus.CANCELLED,
+                changedBy: "SYSTEM" ,
+                note: 'Order expired (no payment within 1 hour)',
+            }
+        })
         console.log(`[CRON] Order ${order.id} cancelled due to no payment`);
     }
 }

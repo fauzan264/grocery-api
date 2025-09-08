@@ -134,10 +134,23 @@ export const cancelOrderService = async (orderId: string, userId: string) => {
         for (const item of order.OrderItems){
             const stocksRecord = item.product.stocks[0]
             if (stocksRecord) {
-                await prisma.stock.update({
+                const oldQty = stocksRecord.quantity
+                const newQty = oldQty + item.quantity
+                await tx.stock.update({
                     where: {id : stocksRecord.id},
+                    data: {quantity: newQty}
+                })
+
+                await tx.stockJournal.create({
                     data: {
-                        quantity: stocksRecord.quantity+ item.quantity
+                        stockId: stocksRecord.id,
+                        quantityOld: oldQty,
+                        quantityDiff: item.quantity,
+                        quantityNew: newQty,
+                        changeType: "INCREASE",
+                        journalType: "RETURN",
+                        reason: `Return stock from cancelled order #${orderId}`,
+                        createdBy: "USER"
                     }
                 })
             }
@@ -187,6 +200,17 @@ export const confirmOrderService = async (userId: string, orderId: string) => {
         })
         return confirmOrder
     }) 
+}
+
+export const getOrderDetailService = async (userId:string, orderId:string) => {
+    return await prisma.order.findFirst({
+        where: { id:orderId, userId},
+        include : {
+            OrderItems: {
+                include: {product:true}
+            }
+        }
+    });
 }
 
 export const getOrdersByUserIdService = async (userId: string) => {

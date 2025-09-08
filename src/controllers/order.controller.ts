@@ -1,8 +1,7 @@
 import { Request, Response } from "express";
-import { cancelOrderService, confirmOrderService, createOrderService, getOrdersByUserIdService } from "../services/orders.service";
+import { cancelOrderService, confirmOrderService, createOrderService, getOrderDetailService, getOrdersByUserIdService } from "../services/orders.service";
 
 export const createOrderController = async (req: Request, res: Response) => {
-    console.log("Payload:", res.locals.payload);
     const { user_id } = res.locals.payload;
     const order = await createOrderService(user_id);
 
@@ -36,6 +35,18 @@ export const confirmOrderController = async (req: Request, res: Response)  => {
     data: confirmOrder,
   });
   
+}
+
+
+export const getOrderDetailController = async (req: Request, res: Response) => {
+  const {orderId} = req.params;
+  const { userId } = res.locals.payload;
+
+  const order = await getOrderDetailService(userId, orderId);
+
+  return res.status(200).json({
+    message: "Orders detail fetched successfully",
+    data: order, })
 }
 
 export const getOrdersByUserController = async (req: Request, res: Response) => {

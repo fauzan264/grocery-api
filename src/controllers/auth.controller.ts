@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import {
   authChangePasswordService,
+  authGoogleCallbackService,
   authLoginService,
   authRegisterService,
   authRequestResetPasswordService,
@@ -8,13 +9,14 @@ import {
   authSessionLoginService,
   authVerificationEmailService,
 } from "../services/auth.service";
+import { oauth2Client, authorizationUrl } from "../lib/auth.google";
+import { google } from "googleapis";
 
 export const authRegisterController = async (req: Request, res: Response) => {
   const { full_name, date_of_birth, email, phone_number } = req.body;
 
   const user = await authRegisterService({
     fullName: full_name,
-    dateOfBirth: date_of_birth,
     email: email,
     phoneNumber: phone_number,
   });
@@ -130,4 +132,49 @@ export const authSessionLoginController = async (
     message: "Session data retrieved successfully.",
     data: { id, full_name, role },
   });
+};
+
+export const authGoogleController = async (req: Request, res: Response) => {
+  res.redirect(authorizationUrl);
+};
+
+export const authGoogleCallbackController = async (
+  req: Request,
+  res: Response
+) => {
+  const { code } = req.query;
+
+  if (!code) {
+    return res.redirect(`${process.env.LINK_AUTH_LOGIN}`);
+  }
+
+  const { tokens } = await oauth2Client.getToken(code as string);
+
+  oauth2Client.setCredentials(tokens);
+
+  const oauth2 = google.oauth2({
+    auth: oauth2Client,
+    version: "v2",
+  });
+
+  const { data } = await oauth2.userinfo.get();
+
+  if (!data.email || !data.name) {
+    res.redirect(`${process.env.LINK_AUTH_LOGIN}`);
+    throw { message: "Email is invalid or not found", isExpose: true };
+  }
+
+  const result = await authGoogleCallbackService({
+    email: data.email,
+    fullName: data.name,
+    photoProfile: data.picture ? data.picture : "",
+  });
+
+  if (!result.success && result.reason == "EMAIL_REGISTERED_LOCAL") {
+    res.redirect(
+      `${process.env.LINK_AUTH_LOGIN}/login?error=email_already_registered`
+    );
+  }
+
+  res.redirect(`${process.env.LINK_AUTH_SUCCESS}/token?${result.token}`);
 };

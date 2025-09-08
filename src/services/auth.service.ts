@@ -1,6 +1,6 @@
 import Handlebars from "handlebars";
 import { prisma } from "../db/connection";
-import { User, UserRole, UserStatus } from "../generated/prisma";
+import { User, UserProvider, UserRole, UserStatus } from "../generated/prisma";
 import { jwtSign } from "../lib/jwt.sign";
 import fs from "fs";
 import { transporter } from "../lib/transporter";
@@ -10,16 +10,14 @@ import { IAuthChangePasswordServiceProps } from "../types/auth";
 
 export const authRegisterService = async ({
   fullName,
-  dateOfBirth,
   email,
   phoneNumber,
-}: Pick<User, "fullName" | "dateOfBirth" | "email" | "phoneNumber">) => {
+}: Pick<User, "fullName" | "email" | "phoneNumber">) => {
   try {
     const userRole = UserRole.CUSTOMER;
     const user = await prisma.user.create({
       data: {
         fullName,
-        dateOfBirth: new Date(dateOfBirth),
         email,
         phoneNumber,
         userRole,
@@ -281,4 +279,49 @@ export const authSessionLoginService = async ({ id }: Pick<User, "id">) => {
   };
 
   return snakecaseKeys(response);
+};
+
+export const authGoogleCallbackService = async ({
+  fullName,
+  email,
+  photoProfile,
+}: Pick<User, "fullName" | "email" | "photoProfile">) => {
+  let user = await prisma.user.findUnique({
+    where: {
+      email: email,
+    },
+  });
+
+  if (user?.userProvider == UserProvider.LOCAL) {
+    return {
+      success: false,
+      reason: "EMAIL_REGISTERED_LOCAL",
+    };
+  }
+
+  if (!user) {
+    user = await prisma.user.create({
+      data: {
+        fullName: fullName,
+        email: email,
+        dateOfBirth: new Date(),
+        photoProfile,
+        verified: true,
+        userRole: UserRole.CUSTOMER,
+        status: UserStatus.ACTIVE,
+        userProvider: UserProvider.GOOGLE,
+      },
+    });
+  }
+
+  const token = await jwtSign(
+    { user_id: user.id, role: user.userRole },
+    process.env.JWT_SECRET_KEY!,
+    { algorithm: "HS256" }
+  );
+
+  return {
+    success: true,
+    token,
+  };
 };

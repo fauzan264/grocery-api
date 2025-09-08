@@ -12,15 +12,23 @@ import orderRouter from "./order.router";
 import { authorizeRoles } from "../middlewares/authorizeRoles.middleware";
 import { authorizeStore } from "../middlewares/authorizeStore.middleware";
 import paymentRouter from "./payment.router";
+import orderAdminRouter from "./orderAdmin.router";
+
+
 
 const mainRouter = Router();
 
 mainRouter.use("/api/auth", authRouter);
 mainRouter.use("/api/users", userRouter);
 mainRouter.use("/api/stores", storeRouter);
+
+//Order
 mainRouter.use("/api/cart", cartRouter);
 mainRouter.use("/api/orders", orderRouter);
 mainRouter.use("/api/payment",paymentRouter);
+
+//Order (Admin)
+mainRouter.use("/api/admin", orderAdminRouter);
 
 // Product
 mainRouter.get("/api/products", productController.listProductsHandler);

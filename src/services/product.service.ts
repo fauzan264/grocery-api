@@ -63,22 +63,16 @@ export const createProduct = async (data: CreateProductInput) => {
   if (data.files && data.files.length > 0) {
     try {
       for (const f of data.files) {
-        const res = await uploadBufferToCloudinary(f.buffer);
-        uploaded.push({ url: res.url, publicId: res.publicId });
+        const up = await uploadBufferToCloudinary(f.buffer);
+        uploaded.push({ url: up.url, publicId: up.publicId });
       }
     } catch (err) {
-      // cleanup partial
       for (const u of uploaded) await destroyPublicId(u.publicId);
-      throw { status: 500, message: "Failed to upload images" };
+      throw { status: 500, message: "Failed uploading images" };
     }
   }
 
-  // Build images array either from provided images or uploaded ones
-  const imagesToCreate = (data.images ?? []).concat(
-    uploaded.map((u, i) => ({ url: u.url, publicId: u.publicId, isPrimary: i === 0 }))
-  );
-
-  // transaction: create product, create images, create initial stock if provided
+  // transaction: create product, then insert uploaded images
   return prisma.$transaction(async (tx) => {
     const product = await tx.product.create({
       data: {
@@ -91,25 +85,32 @@ export const createProduct = async (data: CreateProductInput) => {
       },
     });
 
-    if (imagesToCreate.length > 0) {
-      await tx.productImage.createMany({
-        data: imagesToCreate.map((img, idx) => ({
+    // insert uploaded images
+    for (const [i, u] of uploaded.entries()) {
+      await tx.productImage.create({
+        data: {
           productId: product.id,
-          url: img.url,
-          publicId: img.publicId ?? null,
-          isPrimary: img.isPrimary ?? idx === 0,
-          altText: img.altText ?? null,
-        })),
+          url: u.url,
+          publicId: u.publicId,
+          isPrimary: i === 0, // gambar pertama jadi primary
+        },
       });
     }
 
+    // create initial stock if provided
     if (data.initialStock && data.storeId) {
-      await tx.stock.create({ data: { productId: product.id, storeId: data.storeId, quantity: data.initialStock } });
+      await tx.stock.create({
+        data: { productId: product.id, storeId: data.storeId, quantity: data.initialStock },
+      });
     }
 
-    return tx.product.findUnique({ where: { id: product.id }, include: { images: true, category: true } });
+    return tx.product.findUnique({
+      where: { id: product.id },
+      include: { images: true, category: true },
+    });
   });
 };
+
 
 export const getProducts = async (page: number, limit: number, search?: string) => {
   const where: Prisma.ProductWhereInput | undefined = search

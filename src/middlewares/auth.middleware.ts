@@ -10,48 +10,66 @@ export interface AuthRequest extends Request {
   };
 }
 
-export const authMiddleware = (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
-) => {
-  const authHeader = req.headers.authorization;
+function normalizeRole(raw?: unknown): string | undefined {
+  if (!raw) return undefined;
+  if (typeof raw === "string") return raw.toUpperCase();
+  if (Array.isArray(raw) && raw.length > 0 && typeof raw[0] === "string") return (raw[0] as string).toUpperCase();
+  return undefined;
+}
 
-  // Pastikan format: "Bearer <token>"
+export const authMiddleware = (req: AuthRequest, res: Response, next: NextFunction): void | Response => {
+  const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return res.status(401).json({ success: false, message: "No token provided" });
   }
 
   const token = authHeader.split(" ")[1];
+  const secret = process.env.JWT_SECRET_KEY || process.env.JWT_SECRET;
+  if (!secret) {
+    console.error("JWT secret missing");
+    return res.status(500).json({ success: false, message: "Server misconfiguration" });
+  }
 
   try {
-    const secret = process.env.JWT_SECRET_KEY as string;
-    const payload = jwt.verify(token, secret) as JwtPayload & {
-      sub: string;
-      role: string;
-      stores?: string[];
-    };
+    const decoded = jwt.verify(token, secret);
+    if (typeof decoded === "string") {
+      // unexpected token shape
+      return res.status(401).json({ success: false, message: "Invalid token payload" });
+    }
 
-    // Debug log hanya saat development
+    const payload = decoded as JwtPayload & Record<string, unknown>;
+
     if (process.env.NODE_ENV !== "production") {
-      console.log("Decoded JWT:", payload);
+      console.log("Decoded JWT payload:", payload);
     }
 
-    // Validasi role
-    const validRoles = ["SUPER_ADMIN", "ADMIN_STORE", "CUSTOMER"] as const;
-    if (!validRoles.includes(payload.role as any)) {
-      return res.status(403).json({ success: false, message: "Invalid role" });
+    // extract subject
+    const subCandidate = payload.sub ?? payload.userId ?? payload.id ?? payload["user_id"];
+    if (!subCandidate || typeof subCandidate !== "string") {
+      return res.status(401).json({ success: false, message: "Invalid token payload: missing subject" });
     }
 
-    // Mapping ke req.user
+    // normalize role (accept payload.role or payload.roles)
+    const rawRole = payload.role ?? payload.roles ?? payload["roleName"];
+    const role = normalizeRole(rawRole);
+    const allowedRoles = ["SUPER_ADMIN", "ADMIN_STORE", "CUSTOMER"];
+    if (!role || !allowedRoles.includes(role)) {
+      return res.status(403).json({ success: false, message: "Invalid role in token" });
+    }
+
+    // normalize stores field if present
+    const storesRaw = payload.stores ?? payload.storeIds ?? payload["stores_ids"];
+    const stores = Array.isArray(storesRaw) ? storesRaw.map(s => String(s)) : undefined;
+
     req.user = {
-      sub: payload.sub,
-      role: payload.role as "SUPER_ADMIN" | "ADMIN_STORE" | "CUSTOMER",
-      stores: payload.stores,
+      sub: subCandidate,
+      role: role as "SUPER_ADMIN" | "ADMIN_STORE" | "CUSTOMER",
+      stores,
     };
 
-    next();
+    return next();
   } catch (err) {
-    return res.status(401).json({ success: false, message: "Invalid token" });
+    console.error("authMiddleware error:", err);
+    return res.status(401).json({ success: false, message: "Invalid or expired token" });
   }
 };

@@ -186,19 +186,30 @@ export const updateProductHandler = [
 /**
  * SOFT DELETE product (admin)
  */
-export const softDeleteProductHandler = async (req: Request, res: Response, next: NextFunction) => {
+export const softDeleteProductHandler = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const authUser = (req as any).user as LocalAuthUser | undefined;
-    if (!isSuperAdmin(authUser)) return res.status(403).json({ success: false, message: "Forbidden: only SUPER_ADMIN can delete products" });
+
+    const authUser = req.user;
+    if (!authUser) {
+      return res.status(401).json({ success: false, message: "Unauthorized: no user" });
+    }
+
+    if (!isSuperAdmin(authUser)) {
+      console.warn("Forbidden: user is not SUPER_ADMIN", { userRole: authUser.role });
+      return res.status(403).json({ success: false, message: "Forbidden: only SUPER_ADMIN can delete products" });
+    }
 
     const productId = req.params.id;
     const deleted = await softDeleteProduct(productId);
+    if (!deleted) {
+      return res.status(404).json({ success: false, message: "Product not found" });
+    }
 
     return res.status(200).json({ success: true, data: deleted, message: "Product soft-deleted" });
   } catch (err) {
-    console.error(err);
-    const status = (err as any).status || 500;
-    const message = (err as any).message || "Internal server error";
+    console.error("softDeleteProductHandler error:", err);
+    const status = (err as any)?.status ?? 500;
+    const message = (err as any)?.message ?? "Internal server error";
     return res.status(status).json({ success: false, message });
   }
 };

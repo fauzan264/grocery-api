@@ -31,28 +31,28 @@ mainRouter.use("/api/payment",paymentRouter);
 mainRouter.use("/api/admin", orderAdminRouter);
 
 // Product
-mainRouter.get("/products", productController.listProductsHandler);
-mainRouter.get("/products/:id", productController.getProductHandler);
-mainRouter.patch("/:id", productController.updateProductHandler);
-mainRouter.delete("/:id", productController.softDeleteProductHandler);
+mainRouter.get("/api/products", productController.listProductsHandler);
+mainRouter.get("/api/products/:id", productController.getProductHandler);
+mainRouter.patch("/api/:id", authMiddleware, authorizeRoles("SUPER_ADMIN"), productController.updateProductHandler);
+mainRouter.delete("/api/:id", authMiddleware, authorizeRoles("SUPER_ADMIN"), productController.softDeleteProductHandler);
 
-// SUPER_ADMIN only create
-mainRouter.post("/products", authMiddleware, ensureRole("SUPER_ADMIN"), upload.array("images", 5), productController.createProductHandler);
-mainRouter.delete("/products/images/:imageId", authMiddleware, ensureRole("SUPER_ADMIN"), productController.deleteProductImageHandler);
+// SUPER_ADMIN only create Products
+mainRouter.post("/api/products", authMiddleware, ensureRole("SUPER_ADMIN"), upload.array("images", 5), productController.createProductHandler);
+mainRouter.delete("/api/products/images/:imageId", authMiddleware, ensureRole("SUPER_ADMIN"), productController.deleteProductImageHandler);
 // Stock
-mainRouter.post("/stores/:storeId/stocks", authMiddleware, ensureStoreOwnership, stockController.createStockHandler);
-mainRouter.patch("/stocks/:stockId", authMiddleware, stockController.updateStockHandler);
-mainRouter.get("/:id/stocks", productController.getProductStocksHandler);
+mainRouter.post("/api/stores/:storeId/stocks", authMiddleware, ensureStoreOwnership, stockController.createStockHandler);
+mainRouter.patch("/api/stocks/:stockId", authMiddleware, stockController.updateStockHandler);
+mainRouter.get("/api/:id/stocks", productController.getProductStocksHandler);
 // Role Check
 mainRouter.post(
-  "/products",
+  "/api/products",
   authMiddleware,
   authorizeRoles("SUPER_ADMIN", "ADMIN_STORE"),
   productController.createProductHandler
 );
 // Store Authorization
 mainRouter.patch(
-  "/products/:id",
+  "/api/products/:id",
   authMiddleware,
   authorizeRoles("SUPER_ADMIN", "ADMIN_STORE"),
   authorizeStore,

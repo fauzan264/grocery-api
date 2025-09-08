@@ -1,5 +1,4 @@
 import { prisma } from "../db/connection";
-import { ShoppingCart, ShoppingCartItem } from "../generated/prisma";
 import { IAddtoCart, IUpdateCart } from "../types/cart";
 
 export const AddtoCartService = async({user_id, productId, quantity}: IAddtoCart) => {

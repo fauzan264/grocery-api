@@ -3,7 +3,8 @@ import { cancelOrderService, confirmOrderService, createOrderService, getOrderDe
 
 export const createOrderController = async (req: Request, res: Response) => {
     const { user_id } = res.locals.payload;
-    const order = await createOrderService(user_id);
+    const {storeId} = req.body
+    const order = await createOrderService(user_id, storeId);
 
     return res.status(201).json({
         message: "Order created successfully",

@@ -2,7 +2,7 @@ import { prisma } from "../db/connection";
 import { OrderStatus } from "../generated/prisma";
 import { cloudinaryUpload } from "../lib/cloudinary.upload";
 
-export const createOrderService = async (userId: string) => {
+export const createOrderService = async (userId: string, storeId: string) => {
     return await prisma.$transaction(async(tx)=> {
         const cart = await tx.shoppingCart.findFirst({
             where:{userId, isActive: true},
@@ -22,15 +22,21 @@ export const createOrderService = async (userId: string) => {
         }
 
         for (const item of cart.ShoppingCartItem) {
-            const availableStock = item.product.stocks.reduce (
+            const localStock = item.product.stocks.find(
+                (s) => s.storeId === storeId
+            )
+
+            const localQty = localStock ? localStock.quantity : 0;
+            const globalQty = item.product.stocks.reduce(
                 (acc, stock) => acc + stock.quantity,0
             )
 
-            if (item.quantity > availableStock) {
+            if (item.quantity > localQty && item.quantity > globalQty){
                 throw {
                     message: `Stock is not enough for product: ${item.product.name}`
                 }
             }
+
         }
 
         const totalPrice = cart.ShoppingCartItem.reduce(
@@ -43,6 +49,7 @@ export const createOrderService = async (userId: string) => {
         const order = await tx.order.create({
             data: {
                 userId,
+                storeId,
                 totalPrice,
                 discount,
                 finalPrice,
@@ -65,18 +72,44 @@ export const createOrderService = async (userId: string) => {
         })
 
         for (const item of cart.ShoppingCartItem) {
-            const totalStock = item. product.stocks.reduce(
-                (acc, stock) => acc + stock.quantity, 0
-            )
+            const stockRecord = await tx.stock.findFirst({
+                where: {
+                    productId: item.productId,
+                    storeId: storeId,
+                }
+            }) 
 
-            const stockRecord = item.product.stocks[0]; 
+            if (!stockRecord){
+                throw {
+                    message: `No stock found for product: ${item.product.name} in store ${storeId}`,
+                }
+            }
+
+            const orderQty = stockRecord.quantity;
+            const newQty = orderQty - item.quantity;
 
             await tx.stock.update({
                 where: {id: stockRecord.id},
                 data: {
-                    quantity: totalStock - item.quantity
+                    quantity: newQty
                 }
             })
+
+            await tx.stockJournal.create({
+                data: {
+                    stockId: stockRecord.id,
+                    quantityOld: orderQty,
+                    quantityDiff: item.quantity,
+                    quantityNew: newQty,
+                    changeType: "DECREASE",
+                    journalType: "PURCHASE",
+                    reason: `Order #${order.id} untuk produk ${item.product.name}`,
+                    createdBy: "USER"
+                }
+            })
+
+
+
         }
 
         await tx.shoppingCartItem.deleteMany({

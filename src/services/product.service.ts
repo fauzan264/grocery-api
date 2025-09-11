@@ -50,7 +50,7 @@ export interface UpdateProductInput {
  * Create product (with optional images upload and initial stock creation)
  */
 export const createProduct = async (data: CreateProductInput) => {
-  // basic unique checks
+  // validate unique name/sku using findUnique is OK karena di schema sudah unique
   const existingByName = await prisma.product.findUnique({ where: { name: data.name } });
   if (existingByName) throw { status: 409, message: "Product name already exists" };
   if (data.sku) {
@@ -63,70 +63,214 @@ export const createProduct = async (data: CreateProductInput) => {
   if (data.files && data.files.length > 0) {
     try {
       for (const f of data.files) {
-        const up = await uploadBufferToCloudinary(f.buffer);
+        // uploadBufferToCloudinary harus menerima buffer dan return { url, publicId }
+        const up = await uploadBufferToCloudinary(f.buffer,
+        );
         uploaded.push({ url: up.url, publicId: up.publicId });
       }
     } catch (err) {
-      for (const u of uploaded) await destroyPublicId(u.publicId);
+      // jika gagal saat upload, bersihkan yang sudah terupload
+      for (const u of uploaded) {
+        try { await destroyPublicId(u.publicId); } catch (_) { /* log, ignore */ }
+      }
       throw { status: 500, message: "Failed uploading images" };
     }
   }
 
-  // transaction: create product, then insert uploaded images
-  return prisma.$transaction(async (tx) => {
-    const product = await tx.product.create({
-      data: {
-        name: data.name,
-        description: data.description,
-        price: data.price,
-        sku: data.sku,
-        categoryId: data.categoryId,
-        weight_g: data.weight_g,
-      },
-    });
-
-    // insert uploaded images
-    for (const [i, u] of uploaded.entries()) {
-      await tx.productImage.create({
+  // Now perform DB transaction; if it fails, cleanup uploaded images
+  try {
+    return await prisma.$transaction(async (tx) => {
+      const product = await tx.product.create({
         data: {
-          productId: product.id,
-          url: u.url,
-          publicId: u.publicId,
-          isPrimary: i === 0, // gambar pertama jadi primary
+          name: data.name,
+          description: data.description,
+          price: data.price,
+          sku: data.sku || undefined,
+          categoryId: data.categoryId || undefined,
+          weight_g: data.weight_g || undefined,
         },
       });
-    }
 
-    // create initial stock if provided
-    if (data.initialStock && data.storeId) {
-      await tx.stock.create({
-        data: { productId: product.id, storeId: data.storeId, quantity: data.initialStock },
-      });
-    }
-
-    return tx.product.findUnique({
-      where: { id: product.id },
-      include: { images: true, category: true },
-    });
-  });
-};
-
-
-export const getProducts = async (page: number, limit: number, search?: string) => {
-  const where: Prisma.ProductWhereInput | undefined = search
-    ? {
-        OR: [
-          { name: { contains: search, mode: "insensitive" } },
-          { description: { contains: search, mode: "insensitive" } },
-        ],
+      // create product images
+      for (const [i, u] of uploaded.entries()) {
+        await tx.productImage.create({
+          data: {
+            productId: product.id,
+            url: u.url,
+            publicId: u.publicId,
+            isPrimary: i === 0,
+          },
+        });
       }
-    : undefined;
 
-  return prisma.product.findMany({ where, include: { images: true, category: true } });
+      // create initial stock if provided (perbaikan check)
+      if (data.initialStock !== undefined && data.storeId) {
+        await tx.stock.create({
+          data: {
+            productId: product.id,
+            storeId: data.storeId,
+            quantity: data.initialStock,
+          },
+        });
+      }
+
+      return tx.product.findUnique({
+        where: { id: product.id },
+        include: { images: true, category: true },
+      });
+    });
+  } catch (txErr) {
+    // cleanup uploaded images if transaction failed
+    for (const u of uploaded) {
+      try { await destroyPublicId(u.publicId); } catch (_) { /* log, ignore */ }
+    }
+
+    // if prisma unique constraint error (P2002), map ke 409
+    if ((txErr as any)?.code === "P2002") {
+      throw { status: 409, message: "Unique constraint failed" };
+    }
+    // rethrow as generic server error
+    throw { status: 500, message: (txErr instanceof Error ? txErr.message : String(txErr)) };
+  }
 };
 
-export const getProductById = async (id: string) => {
-  return prisma.product.findUnique({ where: { id }, include: { images: true, category: true, stocks: true } });
+
+// === LIST PRODUCTS (pagination + search + totalStock) ===
+type ProductWithRelations = Prisma.ProductGetPayload<{
+  include: { images: true; category: true };
+}> & {
+  totalStock: number;
+};
+
+export type ProductListResult = {
+  items: ProductWithRelations[];
+  meta: { total: number; page: number; limit: number; totalPages: number };
+};
+
+export const getProducts = async (
+  page: number,
+  limit: number,
+  search?: string,
+  categoryId?: string,
+  minPrice?: number,
+  maxPrice?: number,
+  available?: boolean
+): Promise<ProductListResult> => {
+  const where: Prisma.ProductWhereInput = {
+    deletedAt: null,
+    ...(search
+      ? {
+          OR: [
+            { name: { contains: search, mode: "insensitive" } },
+            { description: { contains: search, mode: "insensitive" } },
+          ],
+        }
+      : {}),
+    ...(categoryId ? { categoryId } : {}),
+    ...(minPrice !== undefined ? { price: { gte: minPrice } } : {}),
+    ...(maxPrice !== undefined ? { price: { ...(minPrice !== undefined ? { gte: minPrice } : {}), lte: maxPrice } } : {}),
+  };
+
+  const skip = (page - 1) * limit;
+
+  // kalau available=true → filter productId yang punya stok > 0
+  let availableProductIds: string[] = [];
+  
+  if (available) {
+  const stockGroups = await prisma.stock.groupBy({
+    by: ["productId"],
+    _sum: { quantity: true },
+  });
+
+  availableProductIds = stockGroups
+    .filter((s) => (s._sum.quantity ?? 0) > 0)
+    .map((s) => s.productId);
+
+  if (availableProductIds.length === 0) {
+    return {
+      items: [],
+      meta: { total: 0, page, limit, totalPages: 1 },
+    };
+  }
+
+  where.id = { in: availableProductIds };
+}
+
+
+  // ambil produk dengan filter
+  const [items, total] = await Promise.all([
+    prisma.product.findMany({
+      where,
+      include: { images: true, category: true },
+      orderBy: { createdAt: "desc" },
+      skip,
+      take: limit,
+    }),
+    prisma.product.count({ where }),
+  ]);
+
+  const productIds = items.map((p) => p.id);
+
+  // ambil stok terakumulasi
+  const stockRows = await prisma.stock.groupBy({
+  by: ["productId"],
+  where: { productId: { in: productIds } },
+  _sum: { quantity: true },
+});
+
+const sumsMap = new Map<string, number>();
+for (const r of stockRows) {
+  sumsMap.set(r.productId, r._sum.quantity ?? 0);
+}
+
+  const itemsWithStock: ProductWithRelations[] = items.map((p) => ({
+    ...p,
+    totalStock: sumsMap.get(p.id) ?? 0,
+  }));
+
+  const meta = {
+    total,
+    page,
+    limit,
+    totalPages: Math.max(1, Math.ceil(total / limit)),
+  };
+
+  return { items: itemsWithStock, meta };
+};
+
+// === GET PRODUCT BY ID (detail + stocksPerStore + totalStock) ===
+type ProductDetail = Prisma.ProductGetPayload<{
+  include: { images: true; category: true; stocks: { include: { store: true } } };
+}> & {
+  totalStock: number;
+  stocksPerStore: { storeId: string; storeName: string; quantity: number }[];
+};
+
+export const getProductById = async (id: string): Promise<ProductDetail | null> => {
+  const p = await prisma.product.findUnique({
+    where: { id, deletedAt: null },
+    include: {
+      images: true,
+      category: true,
+      stocks: { include: { store: true } },
+    },
+  });
+
+  if (!p) return null;
+
+  const totalStock = p.stocks.reduce((acc, s) => acc + (s.quantity ?? 0), 0);
+
+  const stocksPerStore = p.stocks.map((s) => ({
+    storeId: s.storeId,
+    storeName: s.store?.name ?? "",
+    quantity: s.quantity ?? 0,
+  }));
+
+  return {
+    ...p,
+    totalStock,
+    stocksPerStore,
+  };
 };
 
 /**

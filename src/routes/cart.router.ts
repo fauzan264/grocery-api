@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { jwtVerify } from "../middlewares/jwt.verify";
 import { addtoCartController, deleteCartController, getCartItemsController, updateCartItemController } from "../controllers/cart.controller";
-import { ensureRole } from "../middlewares/role.middleware";
+import { ensureRole } from "../middlewares/authorizeRoles.middleware";
 import { roleVerify } from "../middlewares/role.verify";
 
 const cartRouter = Router ()

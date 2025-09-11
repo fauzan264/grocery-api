@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { getAllOrdersAdminService, getOrderDetailAdminService } from "../services/adminOrder.service";
+import { approvePaymentService, getAllOrdersAdminService, getOrderDetailAdminService } from "../services/adminOrder.service";
 import { formatDateJakarta } from "../utils/date";
 import { UserRole } from "../generated/prisma";
 
@@ -48,19 +48,15 @@ export const getAllOrdersAdminController = async (req: Request, res: Response) =
   });
 };
 
-export const getOrderDetailController =  async (req: Request, res: Response) => {
-  const { role, storeId} = res.locals.payload
+export const getOrderDetailController = async (req: Request, res: Response) => {
+  const { user_id, role } = res.locals.payload;
   const { orderId } = req.params;
 
-  console.log("DEBUG JWT Payload:");
-  console.log("role:", role);
-  console.log("storeId:", storeId);
-
   if (role !== UserRole.SUPER_ADMIN && role !== UserRole.ADMIN_STORE) {
-      throw { status: 403, message: "Forbidden: You are not authorized to access this resource" };
-    }
+    throw { status: 403, message: "Forbidden: You are not authorized to access this resource" };
+  }
 
-  const order = await getOrderDetailAdminService({role, storeId, orderId});
+  const order = await getOrderDetailAdminService({ orderId, role, userId: user_id });
 
   if (!order) {
     throw { status: 404, message: "Order not found or not accessible" };
@@ -88,10 +84,35 @@ export const getOrderDetailController =  async (req: Request, res: Response) => 
       quantity: item.quantity,
       subTotal: item.subTotal,
     })),
+    store: order.store ? { id: order.store.id, name: order.store.name } : null,
   };
 
   return res.status(200).json({
-    message: `Get order: ${orderId} detail sucessfully`,
-    data: mappedOrder
+    message: `Get order: ${orderId} detail successfully`,
+    data: mappedOrder,
   });
-};  
+};
+
+export const approvePaymentController = async (req: Request, res: Response) => {
+  const {user_id, fullName} = res.locals.payload
+  const {orderId} = req.params
+
+  const order = await approvePaymentService({user_id, orderId})
+  
+  const mappedOrder = {
+      id: order.id,
+      totalPrice: order.totalPrice,
+      discount: order.discount,
+      finalPrice: order.finalPrice,
+      paymentProof: order.paymentProof,
+      status: order.status,
+      storeId: order.storeId,
+      userId: order.userId,
+      approver: order.approver
+    };
+
+  return res.status(200).json({
+    message: `Get order: ${orderId} detail successfully`,
+    data: mappedOrder,
+  });
+}

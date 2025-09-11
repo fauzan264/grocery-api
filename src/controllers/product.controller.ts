@@ -28,12 +28,12 @@ const isAdminStore = (user?: LocalAuthUser) => user?.role === "ADMIN_STORE";
  */
 export async function createProductHandler(req: AuthRequest, res: Response) {
   try {
-    if (!req.user || req.user.role !== "SUPER_ADMIN") {
-      return res.status(403).json({ success: false, message: "Only SUPER_ADMIN can create products" });
-    }
 
     const body = req.body as Record<string, any>;
     const files = (req.files as Express.Multer.File[] | undefined) ?? [];
+    if (!files || files.length === 0) {
+  return res.status(400).json({ success: false, message: "Minimum 1 product image is required" });
+}
 
     const payload: CreateProductInput = {
       name: String(body.name),
@@ -63,14 +63,19 @@ export async function createProductHandler(req: AuthRequest, res: Response) {
  */
 export async function listProductsHandler(req: AuthRequest, res: Response) {
   try {
-    const page = parseInt(String(req.query.page ?? "1"), 10);
-    const limit = parseInt(String(req.query.limit ?? "20"), 10);
-    const search = req.query.search ? String(req.query.search) : undefined;
+    const page = Math.max(1, parseInt(String(req.query.page ?? "1"), 10));
+    const limit = Math.max(1, Math.min(100, parseInt(String(req.query.limit ?? "20"), 10)));
+    const search = req.query.search ? String(req.query.search).trim() : undefined;
+    const categoryId = req.query.categoryId ? String(req.query.categoryId) : undefined;
+    const minPrice = req.query.minPrice ? Number(req.query.minPrice) : undefined;
+    const maxPrice = req.query.maxPrice ? Number(req.query.maxPrice) : undefined;
+    const available = req.query.available === "true";
 
-    const data = await getProducts(page, limit, search);
-    return res.json({ success: true, data });
+    const { items, meta } = await getProducts(page, limit, search, categoryId, minPrice, maxPrice, available);
+
+    return res.status(200).json({ success: true, data: items, meta });
   } catch (err) {
-    console.error(err);
+    console.error("listProductsHandler error:", err);
     return res.status(500).json({ success: false, message: "Internal server error" });
   }
 }
@@ -83,9 +88,9 @@ export async function getProductHandler(req: AuthRequest, res: Response) {
     const id = req.params.id as string;
     const p = await getProductById(id);
     if (!p) return res.status(404).json({ success: false, message: "Product not found" });
-    return res.json({ success: true, data: p });
+    return res.status(200).json({ success: true, data: p });
   } catch (err) {
-    console.error(err);
+    console.error("getProductHandler error:", err);
     return res.status(500).json({ success: false, message: "Internal server error" });
   }
 }
@@ -235,15 +240,3 @@ export const getProductStocksHandler = async (req: Request, res: Response, next:
     return res.status(status).json({ success: false, message });
   }
 };
-
-// Export router (optional helper)
-export const productRouter = Router();
-productRouter.post("/", /* auth middleware in route level should be applied */ createProductHandler);
-productRouter.get("/", listProductsHandler);
-productRouter.get("/:id", getProductHandler);
-productRouter.delete("/images/:imageId", /* auth */ deleteProductImageHandler);
-productRouter.patch("/:id", updateProductHandler as any);
-productRouter.delete("/:id", softDeleteProductHandler);
-productRouter.get("/:id/stocks", getProductStocksHandler);
-
-export default productRouter;

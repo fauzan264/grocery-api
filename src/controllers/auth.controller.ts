@@ -172,9 +172,9 @@ export const authGoogleCallbackController = async (
 
   if (!result.success && result.reason == "EMAIL_REGISTERED_LOCAL") {
     res.redirect(
-      `${process.env.LINK_AUTH_LOGIN}/login?error=email_already_registered`
+      `${process.env.LINK_AUTH_LOGIN}?error=email_already_registered`
     );
   }
 
-  res.redirect(`${process.env.LINK_AUTH_SUCCESS}/token?${result.token}`);
+  res.redirect(`${process.env.LINK_AUTH_LOGIN}?token=${result.token}`);
 };

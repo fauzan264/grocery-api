@@ -40,7 +40,7 @@ export const createOrderService = async (userId: string, storeId: string) => {
         }
 
         const totalPrice = cart.ShoppingCartItem.reduce(
-            (acc, item) => acc + item.quantity*item.product.price,0
+            (acc, item) => acc + item.quantity*item.price,0
         )
 
         const discount = 0
@@ -59,16 +59,12 @@ export const createOrderService = async (userId: string, storeId: string) => {
                         return {
                         productId : item.productId,
                         quantity: item.quantity,
-                        price: item.product.price,
-                        subTotal: item.quantity * item.product.price,
+                        price: item.price,
+                        subTotal: item.quantity * item.price,
                         }
                     })
                 }
             },
-            include: {
-                OrderItems: true,
-                user: true
-            }
         })
 
         for (const item of cart.ShoppingCartItem) {
@@ -107,9 +103,6 @@ export const createOrderService = async (userId: string, storeId: string) => {
                     createdBy: "USER"
                 }
             })
-
-
-
         }
 
         await tx.shoppingCartItem.deleteMany({
@@ -136,7 +129,7 @@ export const createOrderService = async (userId: string, storeId: string) => {
     });
 }
 
-export const cancelOrderService = async (orderId: string, userId: string) => {
+export const cancelOrderService = async (orderId: string) => {
     return await prisma.$transaction(async(tx) => {
         const order = await tx.order.findUnique({
             where: {id : orderId},
@@ -203,7 +196,7 @@ export const cancelOrderService = async (orderId: string, userId: string) => {
     })
 }
 
-export const confirmOrderService = async (userId: string, orderId: string) => {
+export const confirmOrderService = async (orderId: string) => {
     return await prisma.$transaction(async(tx) => {
         const order = await tx.order.findUnique({
             where: {id : orderId}
@@ -249,13 +242,6 @@ export const getOrderDetailService = async (userId:string, orderId:string) => {
 export const getOrdersByUserIdService = async (userId: string) => {
   return await prisma.order.findMany({
     where: { userId },
-    include: {
-      OrderItems: {
-        include: {
-          product: true, 
-        },
-      },
-    },
     orderBy: {
       createdAt: "desc",
     },

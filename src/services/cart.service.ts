@@ -3,9 +3,8 @@ import { IAddtoCart, IUpdateCart } from "../types/cart";
 
 export const AddtoCartService = async({user_id, productId, quantity}: IAddtoCart) => {
 
-    //Cek active cart
     let cart = await prisma.shoppingCart.findFirst({
-        where: {userId:user_id, isActive: true}
+        where: {userId:user_id, isActive: true},
     })
 
     if(!cart) {
@@ -32,7 +31,7 @@ export const AddtoCartService = async({user_id, productId, quantity}: IAddtoCart
     //Retrieve price from product db
     const product = await prisma.product.findFirstOrThrow({
         where: {id : productId},
-        select: { price: true}
+        select: { price: true, name:true}
     });
 
     //add Product to cart
@@ -43,6 +42,11 @@ export const AddtoCartService = async({user_id, productId, quantity}: IAddtoCart
             quantity,
             price: product.price,
             subTotal: product.price * quantity
+        },
+        include: {
+            product:{
+                select:{name:true}
+            }
         }
     })
 

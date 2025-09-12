@@ -7,6 +7,7 @@ import orderRouter from "./order.router";
 import paymentRouter from "./payment.router";
 import orderAdminRouter from "./orderAdmin.router";
 import productRouter from "./routes.products";
+import categoryRouter from "./routes.categories";
 
 
 
@@ -25,6 +26,7 @@ mainRouter.use("/api/payment",paymentRouter);
 mainRouter.use("/api/admin", orderAdminRouter);
 
 //Product
-mainRouter.use("/api/products", productRouter)
+mainRouter.use("/api/products", productRouter);
+mainRouter.use("/api/categories", categoryRouter);
 
 export default mainRouter;

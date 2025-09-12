@@ -1,14 +1,27 @@
 import { Request, Response } from "express";
 import { cancelOrderService, confirmOrderService, createOrderService, getOrderDetailService, getOrdersByUserIdService } from "../services/orders.service";
+import { formatDateJakarta } from "../utils/date";
 
 export const createOrderController = async (req: Request, res: Response) => {
     const { user_id } = res.locals.payload;
     const {storeId} = req.body
+
     const order = await createOrderService(user_id, storeId);
+
+    const result = {
+      id: order.id,
+      storeId: storeId,
+      status: order.status,
+      sub_total : order.totalPrice,
+      discount : order.discount,
+      finalPrice: order.finalPrice,
+      createdAt : formatDateJakarta(order.createdAt)
+    }
+
 
     return res.status(201).json({
         message: "Order created successfully",
-        data: order
+        data: result
     })
 }
 
@@ -16,7 +29,17 @@ export const cancelOrderController = async (req: Request, res: Response)  => {
   const { userId } = res.locals.payload;
   const {orderId} = req.params
 
-  const cancelledOrder = await cancelOrderService(orderId, userId);
+  const order = await cancelOrderService(orderId);
+
+  const cancelledOrder = {
+      id: order.id,
+      storeId: order.storeId,
+      status: order.status,
+      sub_total : order.totalPrice,
+      discount : order.discount,
+      finalPrice: order.finalPrice,
+      createdAt : formatDateJakarta(order.createdAt)
+    }
 
   return res.status(200).json({
     message: "Order cancelled successfully",
@@ -29,7 +52,17 @@ export const confirmOrderController = async (req: Request, res: Response)  => {
   const { userId } = res.locals.payload;
   const {orderId} = req.params
 
-  const confirmOrder = await confirmOrderService(orderId, userId);
+  const order = await confirmOrderService(orderId);
+
+  const confirmOrder = {
+      id: order.id,
+      storeId: order.storeId,
+      status: order.status,
+      sub_total : order.totalPrice,
+      discount : order.discount,
+      finalPrice: order.finalPrice,
+      updatedAt : formatDateJakarta(order.updatedAt)
+    }
 
   return res.status(200).json({
     message: "Order has been delivered to the costumer",
@@ -45,9 +78,28 @@ export const getOrderDetailController = async (req: Request, res: Response) => {
 
   const order = await getOrderDetailService(userId, orderId);
 
+  const orderDetail = {
+    id : order?.id,
+    status: order?.status,
+    totalPrice: order?.totalPrice,
+    discount : order?.discount,
+    finalPrice: order?.finalPrice,
+    createdAt: order?.createdAt,
+    items: order?.OrderItems.map((item)=> ({
+      quantity: item.quantity,
+      price: item.price,
+      subTotal :item.subTotal,
+      product : {
+        name :item.product.name
+      }
+    })),
+    totalItems: order?.OrderItems.reduce((acc, item) => acc + item.quantity, 0)
+  }
+
   return res.status(200).json({
     message: "Orders detail fetched successfully",
-    data: order, })
+    data: orderDetail
+   })
 }
 
 export const getOrdersByUserController = async (req: Request, res: Response) => {
@@ -55,8 +107,19 @@ export const getOrdersByUserController = async (req: Request, res: Response) => 
 
   const orders = await getOrdersByUserIdService(userId);
 
+  const orderList = orders.map((order)=>({
+    id: order.id,
+    storeId: order.storeId,
+    status: order.status,
+    sub_total : order.totalPrice,
+    discount : order.discount,
+    finalPrice: order.finalPrice,
+    createdAt : formatDateJakarta(order.createdAt),
+    updatedAt : formatDateJakarta(order.updatedAt)
+  }))
+  
   return res.status(200).json({
     message: "Orders fetched successfully",
-    data: orders,
+    data: orderList,
   });
 };

@@ -5,12 +5,21 @@ export const addtoCartController = async (req:Request, res:Response) => {
     const { user_id} = res.locals.payload;
     const { productId, quantity} = req.body;
 
-    const cartItem = await AddtoCartService ({
+    const Cart = await AddtoCartService ({
         user_id,
         productId,
         quantity: Number(quantity)
     });
 
+    const cartItem = {
+      id: Cart.cartId,
+      productId: Cart.productId,
+      productName: (Cart as any).product?.name,
+      quantity: Cart.quantity,
+      createdAt: Cart.createdAt,
+      
+    }
+    
     return res.status(200).json({
         message: "Product added to cart successfully",
         data: cartItem
@@ -52,10 +61,11 @@ export const deleteCartController = async (req: Request, res: Response)  => {
 export const getCartItemsController = async (req: Request, res: Response) => {
   const { userId } = res.locals.payload;
 
-  const result = await getCartItemsService(userId);
+  const cart = await getCartItemsService(userId);
+
 
   return res.status(200).json({
     message: "Cart fetched successfully",
-    data: result.items,
+    data: cart,
   });
 };

@@ -1,7 +1,6 @@
 import { Router } from "express";
 import { jwtVerify } from "../middlewares/jwt.verify";
 import { cancelOrderController, confirmOrderController, createOrderController, getOrderDetailController, getOrdersByUserController } from "../controllers/order.controller";
-import { ensureRole } from "../middlewares/role.middleware";
 import { roleVerify } from "../middlewares/role.verify";
 
 const orderRouter = Router ()

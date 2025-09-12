@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { approvePaymentService, getAllOrdersAdminService, getOrderDetailAdminService } from "../services/adminOrder.service";
+import { approvePaymentService, cancelOrderAdminService, getAllOrdersAdminService, getOrderDetailAdminService } from "../services/adminOrder.service";
 import { formatDateJakarta } from "../utils/date";
 import { UserRole } from "../generated/prisma";
 
@@ -51,10 +51,6 @@ export const getAllOrdersAdminController = async (req: Request, res: Response) =
 export const getOrderDetailController = async (req: Request, res: Response) => {
   const { user_id, role } = res.locals.payload;
   const { orderId } = req.params;
-
-  if (role !== UserRole.SUPER_ADMIN && role !== UserRole.ADMIN_STORE) {
-    throw { status: 403, message: "Forbidden: You are not authorized to access this resource" };
-  }
 
   const order = await getOrderDetailAdminService({ orderId, role, userId: user_id });
 
@@ -114,5 +110,33 @@ export const approvePaymentController = async (req: Request, res: Response) => {
   return res.status(200).json({
     message: `Get order: ${orderId} detail successfully`,
     data: mappedOrder,
+  });
+}
+
+export const cancelOrderAdminController = async (req: Request, res: Response) => {
+  const {userId, storeId} = res.locals.payload
+  const {orderId} = req.params
+
+  console.log("Full Payload:", res.locals.payload);
+
+  const order = await cancelOrderAdminService(userId, orderId, storeId);
+
+
+
+
+  const cancelOrder = {
+    id: order.id,
+    status : order.status,
+    updatedAt : order.updatedAt,
+    orderItems: order.OrderItems.map(item => ({
+            productId: item.productId,
+            productName: item.product.name,
+            quantity: item.quantity,
+    }))
+  }
+
+  return res.status(200).json({
+    message: ` order: ${orderId} cancelled successfully`,
+    data: cancelOrder,
   });
 }

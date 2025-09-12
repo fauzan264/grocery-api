@@ -28,6 +28,7 @@ model User {
   ShoppingCart ShoppingCart[]
   UserAddress  UserAddress[]
   UserStore    UserStore[]
+  categoryLogs CategoryLog[]
 
   @@map("users")
 }
@@ -201,6 +202,7 @@ model Category {
   updatedAt   DateTime  @default(now()) @updatedAt  // tambahin default supaya migration aman
 
   products    Product[]
+  logs        CategoryLog[]
 
   @@unique([name])
   @@index([parentId])
@@ -208,16 +210,19 @@ model Category {
 }
 
 model CategoryLog {
-  id         String   @id @default(uuid()) @db.VarChar(36)
-  categoryId String   @db.VarChar(36)
-  action     String   // e.g. "CREATE", "UPDATE", "SOFT_DELETE", "RESTORE"
-  payload    Json?    // snapshot of payload / changes (optional)
-  performedBy String? @db.VarChar(36) // user id who melakukan aksi
-  createdAt  DateTime @default(now())
+  id          String   @id @default(uuid()) @db.VarChar(36)
+  categoryId  String   @db.VarChar(36)
+  category    Category @relation(fields: [categoryId], references: [id])
+  action      String   // e.g. "CREATE", "UPDATE", "SOFT_DELETE", "RESTORE"
+  payload     Json?    // snapshot of payload / changes (optional)
+  performedBy String?   @db.VarChar(36)
+  performedByUser User? @relation(fields: [performedBy], references: [id])
+  createdAt   DateTime @default(now())
 
   @@index([categoryId])
   @@map("category_logs")
 }
+
 
 model Product {
   id               String             @id @default(uuid()) @db.VarChar(36)

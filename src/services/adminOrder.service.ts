@@ -110,6 +110,8 @@ export const approvePaymentService = async ({user_id, orderId}:{
         status: OrderStatus.IN_PROCESS
       }
     })
+
+    
     await tx.orderStatusLog.create({
             data:{
                 orderId:order.id,
@@ -120,5 +122,101 @@ export const approvePaymentService = async ({user_id, orderId}:{
             }
         })
     return {...updateOrder, approver: user.fullName}
+  })
+}
+
+export const cancelOrderAdminService = async (userId:string, role: string, orderId:string) => {
+  return await prisma.$transaction(async(tx) => {
+    const order = await tx.order.findFirst({
+      where: {
+        id:orderId,
+        ...(role === "ADMIN_STORE"
+        ? {
+            store: {
+              UserStore: {
+                some: {
+                  userId 
+                }
+              }
+            }
+          }
+        : {})
+      },
+      
+      include: {
+        OrderItems: {
+          include: {product:{include:{stocks:true}}}
+        }
+      }
+    })
+
+    if(!order){
+      throw {message: "Order not found", isExpose:true}
+    }
+
+
+    if(order.status !== OrderStatus.WAITING_CONFIRMATION_PAYMENT && order.status !== OrderStatus.IN_PROCESS){
+      throw{ message: `Order with status ${order.status} can not be cancelled`}
+    }
+
+    const user = await tx.user.findUnique({
+      where: { id: userId },
+      select: { fullName: true },
+    });
+
+    if (!user) {
+      throw { message: "Admin Store not found", isExpose: true };
+    }
+    
+    const oldStatus = order.status; 
+
+    const cancelOrder = await tx.order.update({
+      where:{ id: orderId},
+      data: {
+        status: OrderStatus.CANCELLED
+      },
+      include: {
+        OrderItems: {
+          include: {product: {include:{stocks:true}}}
+        }
+      }
+    })
+
+    for (const item of order.OrderItems){
+            const stocksRecord = item.product.stocks.find(s => s.storeId === order.storeId);
+            if (stocksRecord) {
+                const oldQty = stocksRecord.quantity
+                const newQty = oldQty + item.quantity
+                await tx.stock.update({
+                    where: {id : stocksRecord.id},
+                    data: {quantity: newQty}
+                })
+
+                await tx.stockJournal.create({
+                    data: {
+                        stockId: stocksRecord.id,
+                        quantityOld: oldQty,
+                        quantityDiff: item.quantity,
+                        quantityNew: newQty,
+                        changeType: "INCREASE",
+                        journalType: "PURCHASE",
+                        reason: `Return stock from cancelled order #${orderId}`,
+                        createdBy: `ADMIN (${user.fullName})`
+                    }
+                })
+            }
+        }
+
+    await tx.orderStatusLog.create({
+            data:{
+                orderId:order.id,
+                oldStatus: oldStatus,
+                newStatus: cancelOrder.status,
+                changedBy:`ADMIN (${user.fullName})`,
+                note: `Order cancelled for order: ${orderId}`
+            }
+        });
+
+        return cancelOrder
   })
 }

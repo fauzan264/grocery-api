@@ -7,7 +7,6 @@ export const roleVerify = (authorizeRole: string[]) => {
     if (!authorizeRole.includes(role)) {
       throw { isExpose: true, message: "Unauthorized user role" };
     }
-
     next();
   };
 };

@@ -6,8 +6,8 @@ import cartRouter from "./cart.router";
 import orderRouter from "./order.router";
 import paymentRouter from "./payment.router";
 import orderAdminRouter from "./orderAdmin.router";
-import productRouter from "./routes.products";
-import categoryRouter from "./routes.categories";
+import productRouter from "./product.router";
+import categoryRouter from "./categories.router";
 
 
 

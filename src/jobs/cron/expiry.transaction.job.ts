@@ -51,16 +51,15 @@ export const expiryTransactionJobs = async () => {
           data: { quantity: newQty },
         });
 
-        await tx.stockJournal.create({
-          data: {
-            stockId: stockRecord.id,
-            quantityOld: oldQty,
-            quantityDiff: item.quantity,
-            quantityNew: newQty,
-            changeType: "INCREASE",
-            journalType: "RETURN",
-            reason: `Return stock from expired order #${order.id}`,
-            createdBy: "SYSTEM",
+        await tx.stockHistory.create({
+            data: {
+              stockId: stockRecord.id,
+              oldQuantity: oldQty,
+              quantityChange: item.quantity,
+              newQuantity: newQty,
+              changeType: "INCREASE",
+              journalType: "RETURN",
+              userId: "SYSTEM"  // bisa juga pakai user ID valid jika ada
           },
         });
       }

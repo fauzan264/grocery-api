@@ -7,7 +7,6 @@ import {
   deleteProductImage,
   updateProduct,
   softDeleteProduct,
-  getProductStocks,
 } from "../services/product.service";
 import { AuthRequest } from "../middlewares/auth.middleware";
 import multer from "multer";

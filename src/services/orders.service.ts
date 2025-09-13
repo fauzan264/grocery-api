@@ -91,19 +91,17 @@ export const createOrderService = async (userId: string, storeId: string) => {
                 }
             })
 
-            await tx.stockJournal.create({
+            await tx.stockHistory.create({
                 data: {
                     stockId: stockRecord.id,
-                    quantityOld: orderQty,
-                    quantityDiff: item.quantity,
-                    quantityNew: newQty,
-                    changeType: "DECREASE",
-                    journalType: "PURCHASE",
-                    reason: `Order #${order.id} untuk produk ${item.product.name}`,
-                    createdBy: "USER"
+                    oldQuantity: orderQty,
+                    quantityChange: item.quantity,
+                    newQuantity: newQty,
+                    changeType: "DECREASE",   // enum StockChangeType
+                    journalType: "PURCHASE",  // enum StockJournalType
+                    userId: "USER",            // pastikan ini ID user yang valid
                 }
             })
-        }
 
         await tx.shoppingCartItem.deleteMany({
             where: { cartId : cart.id},
@@ -124,8 +122,8 @@ export const createOrderService = async (userId: string, storeId: string) => {
             }
         })
 
-        return order
-
+            return order
+         }
     });
 }
 
@@ -167,16 +165,15 @@ export const cancelOrderService = async (orderId: string) => {
                     data: {quantity: newQty}
                 })
 
-                await tx.stockJournal.create({
+                await tx.stockHistory.create({
                     data: {
                         stockId: stocksRecord.id,
-                        quantityOld: oldQty,
-                        quantityDiff: item.quantity,
-                        quantityNew: newQty,
-                        changeType: "INCREASE",
-                        journalType: "RETURN",
-                        reason: `Return stock from cancelled order #${orderId}`,
-                        createdBy: "USER"
+                        oldQuantity: oldQty,            // sebelumnya quantityOld
+                        quantityChange: item.quantity,   // sebelumnya quantityDiff
+                        newQuantity: newQty,             // sebelumnya quantityNew
+                        changeType: "INCREASE",          // enum StockChangeType
+                        journalType: "RETURN",           // enum StockJournalType
+                        userId: "USER"                   // harus ID user valid, bukan string bebas
                     }
                 })
             }

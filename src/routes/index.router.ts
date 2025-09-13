@@ -29,4 +29,7 @@ mainRouter.use("/api/admin", orderAdminRouter);
 mainRouter.use("/api/products", productRouter);
 mainRouter.use("/api/categories", categoryRouter);
 
+//Stock
+mainRouter.use("/api/stocks", storeRouter);
+
 export default mainRouter;

@@ -1,37 +1,76 @@
 import { Router } from "express";
 import {
-createStockHandler,
-updateStockHandler,
-getStockHandler,
-listStockByStoreHandler,
-transferStockHandler,
-getStocksByProductHandler,
+  createStockHandler,
+  updateStockHandler,
+  getStockHandler,
+  listStockByStoreHandler,
+  transferStockHandler,
+  getStocksByProductHandler,
 } from "../controllers/stock.controller";
 import { authMiddleware } from "../middlewares/auth.middleware";
 import { authorizeRoles } from "../middlewares/authorizeRoles.middleware";
 
-
 const stockRouter = Router();
 
-// Create stock (SUPER_ADMIN can provide storeId in path; ADMIN_STORE will have store enforced)
-stockRouter.post("/stores/:storeId/stocks", authMiddleware, authorizeRoles("SUPER_ADMIN", "ADMIN_STORE"), createStockHandler);
-stockRouter.post("/stores/stocks", authMiddleware, authorizeRoles("SUPER_ADMIN", "ADMIN_STORE"), createStockHandler); // alternate without param
+// Create stock
+// -> POST /api/stocks/stores/:storeId
+stockRouter.post(
+  "/stores/:storeId",
+  authMiddleware,
+  authorizeRoles("SUPER_ADMIN", "ADMIN_STORE"),
+  createStockHandler
+);
 
+// alternate: POST /api/stocks (storeId di body)
+stockRouter.post(
+  "/",
+  authMiddleware,
+  authorizeRoles("SUPER_ADMIN", "ADMIN_STORE"),
+  createStockHandler
+);
 
-// List & get
-stockRouter.get("/stores/:storeId/stocks", authMiddleware, authorizeRoles("SUPER_ADMIN", "ADMIN_STORE"), listStockByStoreHandler);
-stockRouter.get("/stocks/:stockId", authMiddleware, authorizeRoles("SUPER_ADMIN", "ADMIN_STORE", "CUSTOMER"), getStockHandler);
+// List by store
+// -> GET /api/stocks/stores/:storeId?page=1&limit=20
+stockRouter.get(
+  "/stores/:storeId",
+  authMiddleware,
+  authorizeRoles("SUPER_ADMIN", "ADMIN_STORE"),
+  listStockByStoreHandler
+);
 
-// GET stocks by product
-stockRouter.get("/products/:productId/stocks", authMiddleware, getStocksByProductHandler);
+// Get stock by ID
+// -> GET /api/stocks/:stockId
+stockRouter.get(
+  "/:stockId",
+  authMiddleware,
+  authorizeRoles("SUPER_ADMIN", "ADMIN_STORE", "CUSTOMER"),
+  getStockHandler
+);
 
+// Get stocks by product
+// -> GET /api/stocks/products/:productId?page=1&limit=20
+stockRouter.get(
+  "/products/:productId",
+  authMiddleware,
+  getStocksByProductHandler
+);
 
 // Update stock
-stockRouter.patch("/stocks/:stockId", authMiddleware, authorizeRoles("SUPER_ADMIN", "ADMIN_STORE"), updateStockHandler);
+// -> PATCH /api/stocks/:stockId
+stockRouter.patch(
+  "/:stockId",
+  authMiddleware,
+  authorizeRoles("SUPER_ADMIN", "ADMIN_STORE"),
+  updateStockHandler
+);
 
-
-// Transfer
-stockRouter.post("/stocks/transfer", authMiddleware, authorizeRoles("SUPER_ADMIN", "ADMIN_STORE"), transferStockHandler);
-
+// Transfer stock
+// -> POST /api/stocks/transfer
+stockRouter.post(
+  "/transfer",
+  authMiddleware,
+  authorizeRoles("SUPER_ADMIN", "ADMIN_STORE"),
+  transferStockHandler
+);
 
 export default stockRouter;

@@ -3,27 +3,32 @@ import { cancelOrderService, confirmOrderService, createOrderService, getOrderDe
 import { formatDateJakarta } from "../utils/date";
 
 export const createOrderController = async (req: Request, res: Response) => {
-    const { user_id } = res.locals.payload;
-    const {storeId} = req.body
+  const { user_id } = res.locals.payload;
+  const { storeId } = req.body;
 
-    const order = await createOrderService(user_id, storeId);
+  const order = await createOrderService(user_id, storeId);
 
-    const result = {
-      id: order.id,
-      storeId: storeId,
-      status: order.status,
-      sub_total : order.totalPrice,
-      discount : order.discount,
-      finalPrice: order.finalPrice,
-      createdAt : formatDateJakarta(order.createdAt)
-    }
+  if (!order) {
+    return res.status(400).json({
+      message: "Failed to create order"
+    });
+  }
 
+  const result = {
+    id: order.id,
+    storeId: storeId,
+    status: order.status,
+    sub_total: order.totalPrice,
+    discount: order.discount,
+    finalPrice: order.finalPrice,
+    createdAt: formatDateJakarta(order.createdAt)
+  };
 
-    return res.status(201).json({
-        message: "Order created successfully",
-        data: result
-    })
-}
+  return res.status(201).json({
+    message: "Order created successfully",
+    data: result
+  });
+};
 
 export const cancelOrderController = async (req: Request, res: Response)  => {
   const { userId } = res.locals.payload;

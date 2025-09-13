@@ -1,4 +1,5 @@
 import { Prisma, PrismaClient, Category, CategoryLog } from "../generated/prisma";
+import slugify from "slugify";
 
 const prisma = new PrismaClient();
 
@@ -32,22 +33,29 @@ export const categoryService = {
 
   // 3. Create category
   async createCategory(name: string, createdBy?: string): Promise<Category> {
-    const newCategory = await prisma.category.create({
-      data: { name, createdBy: createdBy ?? null },
-    });
+  // generate slug dari name
+  const slug = slugify(name, { lower: true, strict: true });
 
-    // create log: note kita pakai 'performedBy' sesuai schema
-    await prisma.categoryLog.create({
-      data: {
-        action: "CREATE",
-        categoryId: newCategory.id,
-        payload: Prisma.JsonNull,
-        performedBy: createdBy ?? null,
-      },
-    });
+  const newCategory = await prisma.category.create({
+    data: {
+      name,
+      slug, // simpan slug di DB
+      createdBy: createdBy ?? null,
+    },
+  });
 
-    return newCategory;
-  },
+  // create log: note kita pakai 'performedBy' sesuai schema
+  await prisma.categoryLog.create({
+    data: {
+      action: "CREATE",
+      categoryId: newCategory.id,
+      payload: Prisma.JsonNull,
+      performedBy: createdBy ?? null,
+    },
+  });
+
+  return newCategory;
+},
 
   // 4. Update category
   async updateCategory(
@@ -131,7 +139,6 @@ export const categoryService = {
         performedByUser: {
           select: { id: true, fullName: true, email: true },
         },
-        // jangan include fields yang nggak ada di schema
       },
     });
   },

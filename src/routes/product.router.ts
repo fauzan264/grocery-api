@@ -43,22 +43,6 @@ productRouter.delete(
   productController.deleteProductImageHandler
 );
 
-// ==================== Stock ====================
-productRouter.post(
-  "/stores/:storeId/stocks",
-  authMiddleware,
-  ensureStoreOwnership,
-  stockController.createStockHandler
-);
-
-productRouter.patch(
-  "/stocks/:stockId",
-  authMiddleware,
-  stockController.updateStockHandler
-);
-
-productRouter.get("/:id/stocks", productController.getProductStocksHandler);
-
 // ==================== Role Check ====================
 productRouter.post(
   "/",

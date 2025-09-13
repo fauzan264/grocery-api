@@ -407,25 +407,3 @@ export const softDeleteProduct = async (id: string) => {
   if (existing.deletedAt) throw { status: 400, message: "Product already deleted" };
   return prisma.product.update({ where: { id }, data: { deletedAt: new Date() } });
 };
-
-/**
- * Get stocks by product across stores (paginated)
- */
-export const getProductStocks = async (productId: string, authUser: { sub: string; role: string; stores?: string[] }, page = 1, limit = 20) => {
-  const p = Math.max(1, page);
-  const l = Math.min(100, limit);
-  const skip = (p - 1) * l;
-
-  const whereClause: any = { productId };
-  if (authUser.role === "ADMIN_STORE") {
-    whereClause.storeId = { in: authUser.stores ?? [] };
-  }
-
-  const [total, items] = await prisma.$transaction([
-    prisma.stock.count({ where: whereClause }),
-    prisma.stock.findMany({ where: whereClause, skip, take: l, include: { store: true }, orderBy: { updatedAt: "desc" } }),
-  ]);
-
-  const data = items.map((it) => ({ storeId: it.storeId, storeName: it.store.name, quantity: it.quantity, updatedAt: it.updatedAt }));
-  return { items: data, meta: { total, page: p, limit: l } };
-};

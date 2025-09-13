@@ -218,25 +218,3 @@ export const softDeleteProductHandler = async (req: AuthRequest, res: Response, 
     return res.status(status).json({ success: false, message });
   }
 };
-
-/**
- * GET stocks by product (paginated)
- */
-export const getProductStocksHandler = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const authUser = (req as any).user as LocalAuthUser | undefined;
-    if (!authUser) return res.status(401).json({ success: false, message: "Unauthorized" });
-
-    const productId = req.params.id;
-    const page = Math.max(1, Number(req.query.page || 1));
-    const limit = Math.min(100, Number(req.query.limit || 20));
-
-    const data = await getProductStocks(productId, authUser as any, page, limit);
-    return res.status(200).json({ success: true, data });
-  } catch (err) {
-    console.error(err);
-    const status = (err as any).status || 500;
-    const message = (err as any).message || "Internal server error";
-    return res.status(status).json({ success: false, message });
-  }
-};

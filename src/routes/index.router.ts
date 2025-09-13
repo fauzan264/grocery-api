@@ -8,6 +8,7 @@ import paymentRouter from "./payment.router";
 import orderAdminRouter from "./orderAdmin.router";
 import productRouter from "./product.router";
 import categoryRouter from "./categories.router";
+import stockRouter from "./stock.router";
 
 
 
@@ -30,6 +31,6 @@ mainRouter.use("/api/products", productRouter);
 mainRouter.use("/api/categories", categoryRouter);
 
 //Stock
-mainRouter.use("/api/stocks", storeRouter);
+mainRouter.use("/api/stocks", stockRouter);
 
 export default mainRouter;

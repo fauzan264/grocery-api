@@ -9,6 +9,7 @@ import orderAdminRouter from "./orderAdmin.router";
 import productRouter from "./product.router";
 import categoryRouter from "./categories.router";
 import stockRouter from "./stock.router";
+import reportRouter from "./reportRoutes";
 
 
 
@@ -32,5 +33,8 @@ mainRouter.use("/api/categories", categoryRouter);
 
 //Stock
 mainRouter.use("/api/stocks", stockRouter);
+
+//Report
+mainRouter.use("/api/reports", reportRouter)
 
 export default mainRouter;

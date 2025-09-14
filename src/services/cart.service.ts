@@ -23,7 +23,7 @@ export const AddtoCartService = async({user_id, productId, quantity}: IAddtoCart
             where: {id:existingProduct.id},
             data: {
                 quantity: existingProduct.quantity + quantity,
-                subTotal: (existingProduct.quantity + quantity) * existingProduct.price
+                subTotal: (existingProduct.quantity + quantity) * Number(existingProduct.price)
             }
         })
     }
@@ -41,7 +41,7 @@ export const AddtoCartService = async({user_id, productId, quantity}: IAddtoCart
             productId,
             quantity,
             price: product.price,
-            subTotal: product.price * quantity
+            subTotal: Number(product.price) * quantity
         },
         include: {
             product:{
@@ -91,7 +91,7 @@ export const updateCartItemService = async ({
         where: {id:existingItem.id},
         data: {
             quantity: newQuantity,
-            subTotal: existingItem.price*newQuantity,
+            subTotal: Number(existingItem.price) * newQuantity,
         },
         include: {
             product: { select: {name: true, price: true}}

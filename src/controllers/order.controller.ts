@@ -4,9 +4,9 @@ import { formatDateJakarta } from "../utils/date";
 
 export const createOrderController = async (req: Request, res: Response) => {
   const { user_id } = res.locals.payload;
-  const { storeId } = req.body;
+  const { storeId, couponCodes } = req.body;
 
-  const order = await createOrderService(user_id, storeId);
+  const order = await createOrderService(user_id, storeId, couponCodes);
 
   if (!order) {
     return res.status(400).json({
@@ -19,7 +19,7 @@ export const createOrderController = async (req: Request, res: Response) => {
     storeId: storeId,
     status: order.status,
     sub_total: order.totalPrice,
-    discount: order.discount,
+    discount: order.discountTotal,
     finalPrice: order.finalPrice,
     createdAt: formatDateJakarta(order.createdAt)
   };
@@ -41,7 +41,7 @@ export const cancelOrderController = async (req: Request, res: Response)  => {
       storeId: order.storeId,
       status: order.status,
       sub_total : order.totalPrice,
-      discount : order.discount,
+      discount : order.discountTotal,
       finalPrice: order.finalPrice,
       createdAt : formatDateJakarta(order.createdAt)
     }
@@ -64,7 +64,7 @@ export const confirmOrderController = async (req: Request, res: Response)  => {
       storeId: order.storeId,
       status: order.status,
       sub_total : order.totalPrice,
-      discount : order.discount,
+      discount : order.discountTotal,
       finalPrice: order.finalPrice,
       updatedAt : formatDateJakarta(order.updatedAt)
     }
@@ -87,7 +87,7 @@ export const getOrderDetailController = async (req: Request, res: Response) => {
     id : order?.id,
     status: order?.status,
     totalPrice: order?.totalPrice,
-    discount : order?.discount,
+    discount : order?.discountTotal,
     finalPrice: order?.finalPrice,
     createdAt: order?.createdAt,
     items: order?.OrderItems.map((item)=> ({
@@ -117,7 +117,7 @@ export const getOrdersByUserController = async (req: Request, res: Response) => 
     storeId: order.storeId,
     status: order.status,
     sub_total : order.totalPrice,
-    discount : order.discount,
+    discount : order.discountTotal,
     finalPrice: order.finalPrice,
     createdAt : formatDateJakarta(order.createdAt),
     updatedAt : formatDateJakarta(order.updatedAt)

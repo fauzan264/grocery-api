@@ -1,8 +1,9 @@
 import { prisma } from "../db/connection";
 import { OrderStatus } from "../generated/prisma";
 import { cloudinaryUpload } from "../lib/cloudinary.upload";
+import { validateAndCalculateDiscounts } from "./discount.service";
 
-export const createOrderService = async (userId: string, storeId: string) => {
+export const createOrderService = async (userId: string, storeId: string, couponCodes: string[]) => {
     return await prisma.$transaction(async(tx)=> {
         const cart = await tx.shoppingCart.findFirst({
             where:{userId, isActive: true},
@@ -39,33 +40,58 @@ export const createOrderService = async (userId: string, storeId: string) => {
 
         }
 
-        const totalPrice = cart.ShoppingCartItem.reduce(
-            (acc, item) => acc + item.quantity*item.price,0
-        )
+        const cartItems = cart.ShoppingCartItem.map((item) => ({
+            productId: item.productId,
+            quantity: item.quantity,
+            price: Number(item.price), // pastikan Decimal → number
+            subTotal: Number(item.price) * item.quantity,
+        }));
 
-        const discount = 0
-        const finalPrice = totalPrice - discount
+        const totalPrice = cart.ShoppingCartItem.reduce(
+            (acc, item) => acc + item.quantity*Number(item.price),0
+        )
+        //Discount
+        const { discountAmount, appliedDiscountIds, extraItems } = await validateAndCalculateDiscounts(
+        tx,
+        couponCodes,
+        userId,
+        totalPrice,
+        storeId,
+        cartItems
+        );
+        
+        const finalPrice = Number((Math.max(0, totalPrice - discountAmount)).toFixed(2));
+        
+        // gabungkan cart items + extraItems
+        const combinedItems = [
+        ...cart.ShoppingCartItem.map((item) => ({
+            productId: item.productId,
+            quantity: item.quantity,
+            price: Number(item.price),
+            subTotal: item.quantity * Number(item.price),
+        })),
+        ...extraItems,
+        ];
 
         const order = await tx.order.create({
             data: {
                 userId,
                 storeId,
                 totalPrice,
-                discount,
+                discountTotal: discountAmount,
                 finalPrice,
                 status: OrderStatus.WAITING_FOR_PAYMENT,
+                appliedDiscountIds,
                 OrderItems: {
-                    create: cart.ShoppingCartItem.map((item)=>{
-                        return {
-                        productId : item.productId,
-                        quantity: item.quantity,
-                        price: item.price,
-                        subTotal: item.quantity * item.price,
-                        }
-                    })
-                }
-            },
-        })
+                    create: combinedItems.map((item) => ({
+                    productId: item.productId,
+                    quantity: item.quantity,
+                    price: item.price,
+                    subTotal: item.subTotal,
+          })),
+        },
+      },
+    });
 
         for (const item of cart.ShoppingCartItem) {
             const stockRecord = await tx.stock.findFirst({
@@ -84,6 +110,10 @@ export const createOrderService = async (userId: string, storeId: string) => {
             const orderQty = stockRecord.quantity;
             const newQty = orderQty - item.quantity;
 
+            if (newQty < 0) {
+            throw { message: `Stock is not enough for product (after checking): productId ${item.productId}` };
+        }
+
             await tx.stock.update({
                 where: {id: stockRecord.id},
                 data: {
@@ -99,7 +129,7 @@ export const createOrderService = async (userId: string, storeId: string) => {
                     newQuantity: newQty,
                     changeType: "DECREASE",   // enum StockChangeType
                     journalType: "PURCHASE",  // enum StockJournalType
-                    userId: "USER",            // pastikan ini ID user yang valid
+                    userId: userId,            // pastikan ini ID user yang valid
                 }
             })
 
@@ -122,8 +152,25 @@ export const createOrderService = async (userId: string, storeId: string) => {
             }
         })
 
+        // buat redemption & increment usesCount kalau ada coupon
+        if (appliedDiscountIds && appliedDiscountIds.length > 0) {
+        for (const discountId of appliedDiscountIds) {
+        // buat redemption record
+        await tx.discountRedemption.create({
+        data: {
+            discountId, // satu ID
+            userId,
+            orderId: order.id,
+        },
+});
+
+        await tx.discount.update({
+      where: { id: discountId },
+      data: { usesCount: { increment: 1 } },
+    });
+        }
             return order
-         }
+         }}
     });
 }
 

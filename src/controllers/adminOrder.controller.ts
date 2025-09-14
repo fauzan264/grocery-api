@@ -22,7 +22,7 @@ export const getAllOrdersAdminController = async (req: Request, res: Response) =
     status: order.status,
     createdAt: formatDateJakarta(order.createdAt),
     totalPrice: order.totalPrice,
-    discount: order.discount,
+    discount: order.discountTotal,
     finalPrice: order.finalPrice,
     paymentProof: order.paymentProof,
     customer: {
@@ -63,7 +63,7 @@ export const getOrderDetailController = async (req: Request, res: Response) => {
     status: order.status,
     createdAt: formatDateJakarta(order.createdAt),
     totalPrice: order.totalPrice,
-    discount: order.discount,
+    discount: order.discountTotal,
     finalPrice: order.finalPrice,
     paymentProof: order.paymentProof,
     customer: {
@@ -98,7 +98,7 @@ export const approvePaymentController = async (req: Request, res: Response) => {
   const mappedOrder = {
       id: order.id,
       totalPrice: order.totalPrice,
-      discount: order.discount,
+      discount: order.discountTotal,
       finalPrice: order.finalPrice,
       paymentProof: order.paymentProof,
       status: order.status,

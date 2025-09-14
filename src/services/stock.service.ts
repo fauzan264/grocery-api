@@ -3,7 +3,6 @@ import { paginateResponse } from "../utils/pagination";
 
 const MAX_RETRY = 3;
 
-
 export async function createStockForStore(productId: string, storeId: string, initialQuantity = 0, createdBy: string) {
 if (!createdBy) throw new Error("createdBy (userId) is required for audit");
 

@@ -30,6 +30,7 @@ model User {
   UserStore    UserStore[]
   categoryLogs CategoryLog[]
   stockHistory StockHistory[]
+  DiscountRedemption DiscountRedemption[]
 
   @@map("users")
 }
@@ -92,9 +93,9 @@ model UserStore {
 
 model Order {
   id           String      @id @default(uuid()) @db.VarChar(36)
-  totalPrice   Int         @map("total_price")
-  discount     Int
-  finalPrice   Int         @map("final_price")
+  totalPrice   Decimal     @map("total_price") @db.Decimal(10,2)
+  discountTotal Decimal?     @db.Decimal(10,2)
+  finalPrice   Decimal     @map("final_price") @db.Decimal(10,2)
   paymentProof String?     @map("payment_proof")
   createdAt    DateTime    @default(now()) @map("created_at")
   updatedAt    DateTime    @updatedAt @map("updated_at")
@@ -102,6 +103,8 @@ model Order {
   userId       String      @map("user_id") @db.VarChar(36)
   storeId      String      @map("store_id") @db.VarChar(36)
   status       OrderStatus
+  DiscountRedemption DiscountRedemption[]
+  appliedDiscountIds String[]
 
   OrderItems OrderItems[]
   StatusLogs OrderStatusLog[]
@@ -116,8 +119,8 @@ model Order {
 model OrderItems {
   id        String    @id @default(uuid()) @db.VarChar(36)
   quantity  Int
-  price     Int
-  subTotal  Int       @map("sub_total")
+  price     Decimal   @db.Decimal(10,2)
+  subTotal  Decimal   @map("sub_total") @db.Decimal(10,2)
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
@@ -125,6 +128,10 @@ model OrderItems {
   productId String    @map("product_id") @db.VarChar(36)
   order     Order     @relation(fields: [orderId], references: [id])
   product   Product   @relation(fields: [productId], references: [id])
+
+  appliedDiscountId String?   @map("applied_discount_id")
+  appliedDiscount   Discount? @relation(fields: [appliedDiscountId], references: [id])
+  discountAmount    Decimal?  @db.Decimal(10,2) @map("discount_amount")
 
   @@map("order_items")
 }
@@ -149,7 +156,7 @@ model Shipment {
   trackingNumber String    @unique @map("tracking_number") @db.VarChar(50)
   courier        String    @db.VarChar(10)
   service        String    @db.VarChar(30)
-  shippingCost   Int       @map("shipping_cost")
+  shippingCost   Decimal   @map("shipping_cost") @db.Decimal(10,2)
   shippingDays   String    @map("shipping_days") @db.VarChar(30)
   createdAt      DateTime  @default(now()) @map("created_at")
   updatedAt      DateTime  @updatedAt @map("updated_at")
@@ -177,8 +184,8 @@ model ShoppingCartItem {
   cartId    String       @map("cart_id") @db.VarChar(36)
   productId String       @map("product_id") @db.VarChar(36)
   quantity  Int
-  price     Int
-  subTotal  Int          @map("sub_total")
+  price     Decimal      @db.Decimal(10,2)
+  subTotal  Decimal      @map("sub_total") @db.Decimal(10,2)
   createdAt DateTime     @default(now()) @map("created_at")
   updatedAt DateTime     @updatedAt @map("updated_at")
   deletedAt DateTime?    @map("deleted_at")
@@ -200,7 +207,7 @@ model Category {
   deletedAt   DateTime?
   createdBy   String?   @db.VarChar(36)
   createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @default(now()) @updatedAt  // tambahin default supaya migration aman
+  updatedAt   DateTime  @updatedAt
 
   products    Product[]
   logs        CategoryLog[]
@@ -218,7 +225,7 @@ model CategoryLog {
   payload     Json?    // snapshot of payload / changes (optional)
   performedBy String?   @db.VarChar(36)
   performedByUser User? @relation(fields: [performedBy], references: [id])
-  createdAt   DateTime @default(now())
+  createdAt   DateTime  @default(now())
 
   @@index([categoryId])
   @@map("category_logs")
@@ -229,7 +236,7 @@ model Product {
   name             String             @unique @db.VarChar(200)
   sku              String?            @unique @db.VarChar(50)
   description      String?
-  price            Int
+  price            Decimal            @db.Decimal(10,2)
   isActive         Boolean            @default(true) @map("is_active")
   categoryId       String?            @map("category_id") @db.VarChar(36)
   createdAt        DateTime           @default(now()) @map("created_at")
@@ -238,10 +245,12 @@ model Product {
   weight_g         Int?               @map("weight_g")
   OrderItems       OrderItems[]
   ProductDiscounts ProductDiscount[]
+  FreeInDiscounts  Discount[]         @relation("DiscountFreeProduct")
   images           ProductImage[]
   category         Category?          @relation(fields: [categoryId], references: [id])
   ShoppingCartItem ShoppingCartItem[]
   stocks           Stock[]
+  discount         Discount[]
 
   @@map("products")
 }
@@ -289,33 +298,80 @@ model StockHistory {
 }
 
 model Discount {
-  id               String            @id @default(uuid()) @db.VarChar(36)
-  code             String?           @unique @db.VarChar(100)
-  name             String            @db.VarChar(150)
-  isPercentage     Boolean           @default(false) @map("is_percentage")
-  value            Int
-  minSpend         Int?              @map("min_spend")
-  buyQuantity      Int?              @map("buy_quantity")
-  freeQuantity     Int?              @map("free_quantity")
-  isActive         Boolean           @default(true) @map("is_active")
-  createdAt        DateTime          @default(now()) @map("created_at")
-  updatedAt        DateTime          @updatedAt @map("updated_at")
-  discountType     DiscountType      @map("discount_type")
-  ProductDiscounts ProductDiscount[]
+id                String          @id @default(cuid())
+name              String
+code              String?         @unique
+isPercentage      Boolean         @default(false)
+value Decimal     @db.Decimal(10,2)
+discountType      DiscountType
+productId         String?
+product           Product?  @relation(fields: [productId], references: [id])
 
-  @@map("discounts")
+
+
+// Fields spesifik tipe
+minSpend          Decimal?        @db.Decimal(10,2) // untuk MIN_SPEND
+buyQuantity       Int? // untuk BUY_X_GET_Y
+freeQuantity      Int? // untuk BUY_X_GET_Y
+getQuantity       Int?
+
+
+// Jika free item berbeda sku
+freeProductId     String?
+freeProduct       Product?        @relation("DiscountFreeProduct", fields: [freeProductId], references: [id])
+
+
+// Operasional
+startsAt          DateTime? // mulai berlaku
+endsAt            DateTime? // berakhir
+isActive          Boolean @default(true)
+maxUses           Int? // total maksimal usage untuk kupon
+perUserLimit      Int? // batas per user
+usesCount         Int           @default(0) // optional: cache count (atau hitung dari redemption table)
+maxUsesPerUser    Int?
+
+
+createdAt DateTime              @default(now())
+updatedAt DateTime              @updatedAt
+
+
+// relational
+productDiscounts ProductDiscount[]
+redemptions DiscountRedemption[]
+appliedOrderItems OrderItems[]
+
+
+@@index([isActive, startsAt, endsAt])
 }
 
 model ProductDiscount {
-  id         String   @id @default(uuid()) @db.VarChar(36)
-  productId  String   @map("product_id") @db.VarChar(36)
-  discountId String   @map("discount_id") @db.VarChar(36)
-  createdAt  DateTime @default(now()) @map("created_at")
-  discount   Discount @relation(fields: [discountId], references: [id], onDelete: Cascade)
-  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+id              String          @id @default(cuid())
+product         Product         @relation(fields: [productId], references: [id])
+productId       String
+discount        Discount        @relation(fields: [discountId], references: [id])
+discountId      String
 
-  @@unique([productId, discountId])
-  @@map("product_discounts")
+
+@@unique([productId, discountId])
+@@map("product_discounts")
+}
+
+model DiscountRedemption {
+id String @id @default(cuid())
+discount Discount @relation(fields: [discountId], references: [id])
+discountId String
+
+
+userId String? // optional, tergantung ada model User di schema-mu
+user User? @relation(fields: [userId], references: [id])
+
+
+orderId String? // optional reference ke Order ketika diskon dipakai di order
+order Order? @relation(fields: [orderId], references: [id])
+
+
+usedAt DateTime @default(now())
+@@map("discount_redemptions")
 }
 
 enum UserStatus {
@@ -378,9 +434,9 @@ enum StockJournalType {
 ///  * BUY_X_GET_Y (buyQuantity + freeQuantity)
 ///  * - value: integer amount or percent depending on isPercentage flag
 enum DiscountType {
-  MANUAL
-  MIN_SPEND
-  BUY_X_GET_Y
-
-  @@map("discount_type")
+MANUAL // diskon langsung (kupon, promo manual)
+MIN_SPEND // diskon jika total order >= minSpend
+BUY_X_GET_Y // beli X dapat Y (bisa free same SKU or different SKU)
+SEASONAL // contoh: promo musiman (opsional)
+BUNDLE // contoh: bundling produk
 }

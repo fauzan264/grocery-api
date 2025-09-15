@@ -4,6 +4,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import { expiryTransactionSchedule } from "./jobs/cron/expiry.transaction.schedule";
 import { confirmTransactionSchedule } from "./jobs/cron/confirm.transaction.schedule";
+import { errorHandler } from "./middlewares/error.handler";
 
 dotenv.config();
 
@@ -13,6 +14,8 @@ app.use(cors());
 const port = 4000;
 
 app.use(mainRouter);
+
+app.use(errorHandler);
 
 app.use((error: any, req: Request, res: Response, next: NextFunction) => {
   console.log(error);

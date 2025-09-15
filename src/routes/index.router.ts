@@ -10,6 +10,7 @@ import productRouter from "./product.router";
 import categoryRouter from "./categories.router";
 import stockRouter from "./stock.router";
 import reportRouter from "./reportRoutes";
+import uploadRouter from "./upload.router";
 
 
 
@@ -36,5 +37,8 @@ mainRouter.use("/api/stocks", stockRouter);
 
 //Report
 mainRouter.use("/api/reports", reportRouter)
+
+//Upload image
+mainRouter.use("/api/uploads", uploadRouter);
 
 export default mainRouter;

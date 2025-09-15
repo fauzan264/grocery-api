@@ -28,8 +28,7 @@ export const addtoCartController = async (req:Request, res:Response) => {
 
 export const updateCartItemController = async (req: Request, res: Response) => {
   const { userId } = res.locals.payload;
-  const { id: itemId } = req.params;
-  const { action } = req.body; 
+  const { id: itemId, action } = req.body; 
 
   if (!["increment", "decrement"].includes(action)) {
       return res.status(400).json({ message: "Invalid action" });

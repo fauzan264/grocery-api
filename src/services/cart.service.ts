@@ -53,51 +53,49 @@ export const AddtoCartService = async({user_id, productId, quantity}: IAddtoCart
 }
 
 export const updateCartItemService = async ({
-    userId,
-    id: itemId,
-    action
+  userId,
+  id: itemId,
+  action,
 }: IUpdateCart) => {
-    const cart = await prisma.shoppingCart.findFirst({
-        where: {userId, isActive:true},
-        include : {
-            ShoppingCartItem: {
-                where: {id : itemId}
-            }
-        }
-    });
+  const existingItem = await prisma.shoppingCartItem.findFirst({
+    where: {
+      id: itemId,
+      cart: { userId, isActive: true },
+    },
+    include: {
+      product: { select: { name: true, price: true } },
+    },
+  });
 
-    if (!cart) {
-        throw {message: "Active cart not found", isExpose: true}
-    }
-
-    const existingItem = cart.ShoppingCartItem[0];
-    if (!existingItem) {
+  if (!existingItem) {
     throw { message: "Item not found in cart", isExpose: true };
-    }
+  }
 
-    let newQuantity = 
-        action === "increment"
-        ? existingItem.quantity + 1
-        : existingItem.quantity - 1;
+  let newQuantity =
+    action === "increment"
+      ? existingItem.quantity + 1
+      : existingItem.quantity - 1;
 
-    if (newQuantity <= 0) {
-        await prisma.shoppingCartItem.delete ({
-            where: {id: existingItem.id}
-        });
-        return { message: "Item removed from cart"}
-    }
+  if (newQuantity <= 0) {
+    await prisma.shoppingCartItem.delete({
+      where: { id: existingItem.id },
+    });
+    return { message: "Item removed from cart" };
+  }
 
-    return prisma.shoppingCartItem.update({
-        where: {id:existingItem.id},
-        data: {
-            quantity: newQuantity,
-            subTotal: Number(existingItem.price) * newQuantity,
-        },
-        include: {
-            product: { select: {name: true, price: true}}
-        }
-    })
-}
+  return prisma.shoppingCartItem.update({
+  where: { id: existingItem.id },
+  data: {
+    quantity: newQuantity,
+    subTotal: Number(existingItem.product.price) * newQuantity,
+  },
+  include: {
+    product: { select: { name: true, price: true } },
+  },
+});
+;
+};
+
 
 export const deleteCartService = async ({
     userId,

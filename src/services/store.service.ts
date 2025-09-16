@@ -55,8 +55,8 @@ export const getAllStoreService = async ({
     where.status = status;
   }
 
-  const pageNumber = page != undefined && page != 0 ? page - 1 : 1;
-  const limitNumber = limit != undefined ? limit : 10;
+  const pageNumber = Math.max(Number(page) || 1, 1);
+  const limitNumber = Math.max(Number(limit) || 10, 1);
   const offset = (pageNumber - 1) * limitNumber;
 
   const totalData = await prisma.store.count({

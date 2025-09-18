@@ -6,6 +6,7 @@ export interface IGetAllStoreServiceProps {
   name?: string | undefined;
   province?: string | undefined;
   city?: string | undefined;
+  district?: string | undefined;
   subdistrict?: string | undefined;
   status?: string | undefined;
   page?: number | undefined;
@@ -19,6 +20,7 @@ export interface ICreateStoreServiceProps
     | "description"
     | "city"
     | "province"
+    | "district"
     | "subdistrict"
     | "address"
     | "latitude"
@@ -35,6 +37,7 @@ export interface IUpdateStoreServiceProps
     | "description"
     | "city"
     | "province"
+    | "district"
     | "subdistrict"
     | "address"
     | "latitude"

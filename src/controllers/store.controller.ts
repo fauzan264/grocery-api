@@ -9,12 +9,14 @@ import {
 } from "../services/store.service";
 
 export const getAllStoreController = async (req: Request, res: Response) => {
-  let { name, province, city, subdistrict, status, page, limit } = req.query;
+  let { name, province, city, district, subdistrict, status, page, limit } =
+    req.query;
 
   const stores = await getAllStoreService({
     name: name ? String(name) : undefined,
     province: province ? String(province) : undefined,
     city: city ? String(city) : undefined,
+    district: district ? String(district) : undefined,
     subdistrict: subdistrict ? String(subdistrict) : undefined,
     status: status ? String(status) : undefined,
     page: page ? Number(page) : undefined,
@@ -46,6 +48,7 @@ export const createStoreController = async (req: Request, res: Response) => {
     description,
     city,
     province,
+    district,
     subdistrict,
     address,
     latitude,
@@ -57,12 +60,13 @@ export const createStoreController = async (req: Request, res: Response) => {
     throw { message: "Logo is required", isExpose: true };
   }
 
-  const store = createStoreService({
+  const store = await createStoreService({
     name,
     logo,
     description,
     city,
     province,
+    district,
     subdistrict,
     address,
     latitude,
@@ -94,6 +98,7 @@ export const updateStoreController = async (req: Request, res: Response) => {
     description,
     city,
     province,
+    district,
     subdistrict,
     address,
     latitude,
@@ -110,6 +115,7 @@ export const updateStoreController = async (req: Request, res: Response) => {
     description,
     city,
     province,
+    district,
     subdistrict,
     address,
     latitude,

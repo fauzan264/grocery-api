@@ -14,6 +14,7 @@ export const getAllStoreService = async ({
   name,
   province,
   city,
+  district,
   subdistrict,
   status,
   page,
@@ -40,6 +41,13 @@ export const getAllStoreService = async ({
   if (city) {
     where.city = {
       contains: city,
+      mode: "insensitive",
+    };
+  }
+
+  if (district) {
+    where.district = {
+      contains: district,
       mode: "insensitive",
     };
   }
@@ -123,6 +131,7 @@ export const createStoreService = async ({
   description,
   city,
   province,
+  district,
   subdistrict,
   address,
   latitude,
@@ -143,6 +152,7 @@ export const createStoreService = async ({
       description,
       city,
       province,
+      district,
       subdistrict,
       address,
       latitude,
@@ -192,6 +202,7 @@ export const updateStoreService = async ({
   description,
   city,
   province,
+  district,
   subdistrict,
   address,
   latitude,
@@ -223,6 +234,7 @@ export const updateStoreService = async ({
       description: description ? description : getStore?.description,
       city: city ? city : getStore?.city,
       province: province ? province : getStore?.province,
+      district: district ? district : getStore?.district,
       subdistrict: subdistrict ? subdistrict : getStore?.subdistrict,
       address: address ? address : getStore?.address,
       latitude: latitude ? latitude : getStore?.latitude,

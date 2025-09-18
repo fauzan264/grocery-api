@@ -163,17 +163,20 @@ export const getMyStoreService = async ({ id }: Pick<User, "id">) => {
 export const createAddressesService = async ({
   city,
   province,
+  district,
   subdistrict,
   address,
   latitude,
   longitude,
   userId,
+  isDefault,
 }: ICreateAddressesServiceProps) => {
   const user = await prisma.user.findUnique({
     where: {
       id: userId,
     },
   });
+  console.log(isDefault);
 
   if (user?.status == UserStatus.INACTIVE) {
     throw { message: "User status inactive", isExpose: true };
@@ -183,15 +186,39 @@ export const createAddressesService = async ({
     throw { message: "User not found", isExpose: true };
   }
 
+  if (isDefault) {
+    const getCurrentDefault = await prisma.userAddress.findFirst({
+      where: {
+        userId: userId,
+        isDefault: true,
+      },
+    });
+
+    console.log(getCurrentDefault);
+
+    if (getCurrentDefault) {
+      await prisma.userAddress.update({
+        where: {
+          id: getCurrentDefault.id,
+        },
+        data: {
+          isDefault: false,
+        },
+      });
+    }
+  }
+
   const userAddress = await prisma.userAddress.create({
     data: {
       city,
       province,
+      district,
       subdistrict,
       address,
       latitude,
       longitude,
       userId,
+      isDefault,
     },
     omit: {
       userId: true,
@@ -212,11 +239,13 @@ export const updateAddressesService = async ({
   addressId,
   city,
   province,
+  district,
   subdistrict,
   address,
   latitude,
   longitude,
   userId,
+  isDefault,
 }: IUpdateAddressesServiceProps) => {
   const user = await prisma.user.findUnique({
     where: {
@@ -232,14 +261,34 @@ export const updateAddressesService = async ({
     throw { message: "User not found", isExpose: true };
   }
 
+  if (isDefault) {
+    const getCurrentDefault = await prisma.userAddress.findFirst({
+      where: {
+        userId: userId,
+        isDefault: true,
+      },
+    });
+
+    await prisma.userAddress.update({
+      where: {
+        id: getCurrentDefault?.id,
+      },
+      data: {
+        isDefault: false,
+      },
+    });
+  }
+
   const userAddress = await prisma.userAddress.update({
     data: {
       city,
       province,
+      district,
       subdistrict,
       address,
       latitude,
       longitude,
+      isDefault,
     },
     where: {
       id: addressId,

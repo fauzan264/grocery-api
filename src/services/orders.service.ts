@@ -1,6 +1,5 @@
 import { prisma } from "../db/connection";
 import { OrderStatus } from "../generated/prisma";
-import { cloudinaryUpload } from "../lib/cloudinary.upload";
 import { validateAndCalculateDiscounts } from "./discount.service";
 
 export const createOrderService = async (userId: string, storeId: string, couponCodes: string[]) => {
@@ -20,7 +19,8 @@ export const createOrderService = async (userId: string, storeId: string, coupon
 
         if (!cart || cart.ShoppingCartItem.length === 0) {
             throw { message: "Cart is empty", isExpose: true };
-        }
+        };
+
 
         for (const item of cart.ShoppingCartItem) {
             const localStock = item.product.stocks.find(
@@ -43,13 +43,31 @@ export const createOrderService = async (userId: string, storeId: string, coupon
         const cartItems = cart.ShoppingCartItem.map((item) => ({
             productId: item.productId,
             quantity: item.quantity,
-            price: Number(item.price), // pastikan Decimal → number
+            price: Number(item.price), 
             subTotal: Number(item.price) * item.quantity,
         }));
 
         const totalPrice = cart.ShoppingCartItem.reduce(
             (acc, item) => acc + item.quantity*Number(item.price),0
         )
+
+        // Default User Address
+        const user = await tx.user.findUnique({
+        where: { id: userId },
+        include: {
+            UserAddress: {
+            where: { isDefault: true }, 
+            take: 1,
+            },
+        },
+        });
+
+        if (!user || user.UserAddress.length === 0) {
+        throw { message: "Default shipping address not found", isExpose: true };
+        }
+
+        const userAddress = user.UserAddress[0];
+
         //Discount
         const { discountAmount, appliedDiscountIds, extraItems } = await validateAndCalculateDiscounts(
         tx,
@@ -121,17 +139,22 @@ export const createOrderService = async (userId: string, storeId: string, coupon
                 }
             })
 
+
+
             await tx.stockHistory.create({
                 data: {
                     stockId: stockRecord.id,
-                    oldQuantity: orderQty,
-                    quantityChange: item.quantity,
-                    newQuantity: newQty,
-                    changeType: "DECREASE",   // enum StockChangeType
-                    journalType: "PURCHASE",  // enum StockJournalType
-                    userId: userId,            // pastikan ini ID user yang valid
+                    quantityOld: orderQty,
+                    quantityDiff: item.quantity,
+                    quantityNew: newQty,
+                    changeType: "DECREASE",
+                    journalType: "PURCHASE",
+                    note: `Order #${order.id} untuk produk ${item.product.name}`,
+                    createdBy: "USER"           
                 }
             })
+            console.log("Creating StockHistory with userId:", userId);
+
 
         await tx.shoppingCartItem.deleteMany({
             where: { cartId : cart.id},
@@ -152,6 +175,16 @@ export const createOrderService = async (userId: string, storeId: string, coupon
             }
         })
 
+        const orderResult = {
+            order,
+            userAddress,
+            user: {
+                fullName: user.fullName,
+                phoneNumber : user.phoneNumber
+            }
+        }
+
+
         // buat redemption & increment usesCount kalau ada coupon
         if (appliedDiscountIds && appliedDiscountIds.length > 0) {
         for (const discountId of appliedDiscountIds) {
@@ -165,11 +198,11 @@ export const createOrderService = async (userId: string, storeId: string, coupon
 });
 
         await tx.discount.update({
-      where: { id: discountId },
-      data: { usesCount: { increment: 1 } },
+        where: { id: discountId },
+        data: { usesCount: { increment: 1 } },
     });
         }
-            return order
+            return orderResult
          }}
     });
 }
@@ -215,12 +248,13 @@ export const cancelOrderService = async (orderId: string) => {
                 await tx.stockHistory.create({
                     data: {
                         stockId: stocksRecord.id,
-                        oldQuantity: oldQty,            // sebelumnya quantityOld
-                        quantityChange: item.quantity,   // sebelumnya quantityDiff
-                        newQuantity: newQty,             // sebelumnya quantityNew
-                        changeType: "INCREASE",          // enum StockChangeType
-                        journalType: "RETURN",           // enum StockJournalType
-                        userId: "USER"                   // harus ID user valid, bukan string bebas
+                        quantityOld: oldQty,
+                        quantityDiff: item.quantity,
+                        quantityNew: newQty,
+                        changeType: "INCREASE",
+                        journalType: "RETURN",
+                        note: `Return stock from cancelled order #${orderId}`,
+                        createdBy: "USER"           
                     }
                 })
             }

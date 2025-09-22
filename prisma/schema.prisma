@@ -29,7 +29,6 @@ model User {
   UserAddress  UserAddress[]
   UserStore    UserStore[]
   categoryLogs CategoryLog[]
-  stockHistory StockHistory[]
   DiscountRedemption DiscountRedemption[]
 
   @@map("users")
@@ -287,17 +286,19 @@ model Stock {
 }
 
 model StockHistory {
-  id              String           @id @default(uuid())
-  stock           Stock            @relation(fields: [stockId], references: [id])
-  stockId         String
-  changeType      StockChangeType
-  journalType     StockJournalType
-  oldQuantity     Int
-  newQuantity     Int
-  quantityChange  Int
-  user            User             @relation(fields: [userId], references: [id])
-  userId          String
-  createdAt       DateTime         @default(now())
+  id           String            @id @default(uuid()) @db.VarChar(36)
+  stockId      String            @map("stock_id") @db.VarChar(36)
+  quantityOld  Int               @map("quantity_old")
+  quantityDiff Int               @map("quantity_diff")
+  quantityNew  Int               @map("quantity_new")
+  note      String?
+  createdBy    String?           @map("created_by") @db.VarChar(36)
+  createdAt    DateTime          @default(now()) @map("created_at")
+  changeType   StockChangeType   @map("change_type")
+  journalType  StockJournalType? @map("journal_type")
+  stock        Stock             @relation(fields: [stockId], references: [id])
+
+  @@map("stock_history")
 }
 
 model Discount {

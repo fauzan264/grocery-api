@@ -187,7 +187,7 @@ export const getStockReport = async ({
       categoryId: stock?.product?.categoryId || null,
       storeId: stock?.storeId,
       storeName: stock?.store?.name || "Unknown",
-      netMovement: item.quantityChange,
+      netMovement: item.quantityDiff,
       createdAt: item.createdAt,
       changeType: item.changeType,
     };

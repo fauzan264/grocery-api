@@ -195,12 +195,13 @@ export const cancelOrderAdminService = async (userId:string, role: string, order
                 await tx.stockHistory.create({
                     data: {
                       stockId: stocksRecord.id,
-                      oldQuantity: oldQty,
-                      quantityChange: item.quantity,
-                      newQuantity: newQty,
-                      changeType: "INCREASE",
-                      journalType: "PURCHASE",
-                      userId: userId,   // ID valid user
+                        quantityOld: oldQty,
+                        quantityDiff: item.quantity,
+                        quantityNew: newQty,
+                        changeType: "INCREASE",
+                        journalType: "PURCHASE",
+                        note: `Return stock from cancelled order #${orderId}`,
+                        createdBy: `ADMIN (${user.fullName})`
                     }
                 })
             }

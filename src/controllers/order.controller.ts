@@ -6,13 +6,16 @@ export const createOrderController = async (req: Request, res: Response) => {
   const { user_id } = res.locals.payload;
   const { storeId, couponCodes } = req.body;
 
-  const order = await createOrderService(user_id, storeId, couponCodes);
+  const orderResult = await createOrderService(user_id, storeId, couponCodes);
 
-  if (!order) {
+  if (!orderResult) {
     return res.status(400).json({
       message: "Failed to create order"
     });
   }
+  
+
+  const {order, userAddress, user} = orderResult
 
   const result = {
     id: order.id,
@@ -21,7 +24,12 @@ export const createOrderController = async (req: Request, res: Response) => {
     sub_total: order.totalPrice,
     discount: order.discountTotal,
     finalPrice: order.finalPrice,
-    createdAt: formatDateJakarta(order.createdAt)
+    createdAt: formatDateJakarta(order.createdAt),
+    user : {
+      receiverName : user.fullName,
+      receiverNumber : user.phoneNumber,
+      shippingAddress: userAddress
+    }
   };
 
   return res.status(201).json({

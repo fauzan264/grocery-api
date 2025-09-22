@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { uploadPaymentService } from "../services/payment.service";
+import { createGopayTransaction, uploadPaymentService } from "../services/payment.service";
 
 
 export const uploadPaymentController = async (req: Request, res: Response) => {

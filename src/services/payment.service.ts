@@ -1,13 +1,51 @@
 import { UploadApiResponse } from "cloudinary";
 import { cloudinaryUpload } from "../lib/cloudinary.upload";
 import { prisma } from "../db/connection";
-import { OrderStatus } from "../generated/prisma";
+import { OrderStatus, PaymentMethod } from "../generated/prisma";
+import midtransClient from "midtrans-client";
 
 type UploadPaymentInput = {
   orderId: string;
   imageFile: Express.Multer.File;
   userId: string; 
 };
+
+const snap = new midtransClient.Snap({
+  isProduction: false, 
+  serverKey: process.env.MIDTRANS_SERVER_KEY!,
+  clientKey: process.env.MIDTRANS_CLIENT_KEY!,
+});
+
+const coreApi = new midtransClient.CoreApi({
+  isProduction: false,
+  serverKey: process.env.MIDTRANS_SERVER_KEY!,
+  clientKey: process.env.MIDTRANS_CLIENT_KEY!,
+});
+
+
+export const createGopayTransaction = async (orderId: string) => {
+  const order = await prisma.order.findUnique({ where: { id: orderId } });
+  if (!order) throw { message: "Order not found", isExpose: true };
+
+  const amount = Number(order.finalPrice);
+
+  const parameter = {
+    transaction_details: {
+      order_id: orderId,
+      gross_amount: amount,
+    },
+    enabled_payments: ['gopay'],
+  };
+
+  const transaction = await snap.createTransaction(parameter);
+
+  return {
+    token: transaction.token,
+    redirect_url: transaction.redirect_url,
+  };
+};
+
+
 
 export const uploadPaymentService = async ({
   orderId,

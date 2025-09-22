@@ -1,211 +1,149 @@
 import { prisma } from "../db/connection";
-import { OrderStatus } from "../generated/prisma";
+import { OrderStatus, PaymentMethod } from "../generated/prisma";
+import { IOrderResult } from "../types/order";
 import { validateAndCalculateDiscounts } from "./discount.service";
+import { createGopayTransaction } from "./payment.service";
 
-export const createOrderService = async (userId: string, storeId: string, couponCodes: string[]) => {
-    return await prisma.$transaction(async(tx)=> {
-        const cart = await tx.shoppingCart.findFirst({
-            where:{userId, isActive: true},
-            include: {
-                ShoppingCartItem: {
-                    include: {
-                        product: {
-                            include: {stocks: true}
-                    }
-                    }
-                }
-            }
-        });
-
-        if (!cart || cart.ShoppingCartItem.length === 0) {
-            throw { message: "Cart is empty", isExpose: true };
-        };
-
-
-        for (const item of cart.ShoppingCartItem) {
-            const localStock = item.product.stocks.find(
-                (s) => s.storeId === storeId
-            )
-
-            const localQty = localStock ? localStock.quantity : 0;
-            const globalQty = item.product.stocks.reduce(
-                (acc, stock) => acc + stock.quantity,0
-            )
-
-            if (item.quantity > localQty && item.quantity > globalQty){
-                throw {
-                    message: `Stock is not enough for product: ${item.product.name}`
-                }
-            }
-
-        }
-
-        const cartItems = cart.ShoppingCartItem.map((item) => ({
-            productId: item.productId,
-            quantity: item.quantity,
-            price: Number(item.price), 
-            subTotal: Number(item.price) * item.quantity,
-        }));
-
-        const totalPrice = cart.ShoppingCartItem.reduce(
-            (acc, item) => acc + item.quantity*Number(item.price),0
-        )
-
-        // Default User Address
-        const user = await tx.user.findUnique({
-        where: { id: userId },
-        include: {
-            UserAddress: {
-            where: { isDefault: true }, 
-            take: 1,
-            },
-        },
-        });
-
-        if (!user || user.UserAddress.length === 0) {
-        throw { message: "Default shipping address not found", isExpose: true };
-        }
-
-        const userAddress = user.UserAddress[0];
-
-        //Discount
-        const { discountAmount, appliedDiscountIds, extraItems } = await validateAndCalculateDiscounts(
-        tx,
-        couponCodes,
-        userId,
-        totalPrice,
-        storeId,
-        cartItems
-        );
-        
-        const finalPrice = Number((Math.max(0, totalPrice - discountAmount)).toFixed(2));
-        
-        // gabungkan cart items + extraItems
-        const combinedItems = [
-        ...cart.ShoppingCartItem.map((item) => ({
-            productId: item.productId,
-            quantity: item.quantity,
-            price: Number(item.price),
-            subTotal: item.quantity * Number(item.price),
-        })),
-        ...extraItems,
-        ];
-
-        const order = await tx.order.create({
-            data: {
-                userId,
-                storeId,
-                totalPrice,
-                discountTotal: discountAmount,
-                finalPrice,
-                status: OrderStatus.WAITING_FOR_PAYMENT,
-                appliedDiscountIds,
-                OrderItems: {
-                    create: combinedItems.map((item) => ({
-                    productId: item.productId,
-                    quantity: item.quantity,
-                    price: item.price,
-                    subTotal: item.subTotal,
-          })),
+export const createOrderService = async (
+userId: string, storeId: string, couponCodes: string[], paymentMethod: PaymentMethod) => {
+  // 1. Buat order, update stok, diskon, cart, dll. di dalam transaksi
+  const orderResult = await prisma.$transaction(async (tx) => {
+    const cart = await tx.shoppingCart.findFirst({
+      where: { userId, isActive: true },
+      include: {
+        ShoppingCartItem: {
+          include: {
+            product: { include: { stocks: true } },
+          },
         },
       },
     });
 
-        for (const item of cart.ShoppingCartItem) {
-            const stockRecord = await tx.stock.findFirst({
-                where: {
-                    productId: item.productId,
-                    storeId: storeId,
-                }
-            }) 
+    if (!cart || cart.ShoppingCartItem.length === 0) {
+      throw { message: "Cart is empty", isExpose: true };
+    }
 
-            if (!stockRecord){
-                throw {
-                    message: `No stock found for product: ${item.product.name} in store ${storeId}`,
-                }
-            }
+    // Cek stok tiap item
+    for (const item of cart.ShoppingCartItem) {
+      const localStock = item.product.stocks.find((s) => s.storeId === storeId);
+      const localQty = localStock ? localStock.quantity : 0;
+      const globalQty = item.product.stocks.reduce((acc, stock) => acc + stock.quantity, 0);
 
-            const orderQty = stockRecord.quantity;
-            const newQty = orderQty - item.quantity;
+      if (item.quantity > localQty && item.quantity > globalQty) {
+        throw { message: `Stock is not enough for product: ${item.product.name}` };
+      }
+    }
 
-            if (newQty < 0) {
-            throw { message: `Stock is not enough for product (after checking): productId ${item.productId}` };
-        }
+    const cartItems = cart.ShoppingCartItem.map((item) => ({
+      productId: item.productId,
+      quantity: item.quantity,
+      price: Number(item.price),
+      subTotal: Number(item.price) * item.quantity,
+    }));
 
-            await tx.stock.update({
-                where: {id: stockRecord.id},
-                data: {
-                    quantity: newQty
-                }
-            })
+    const totalPrice = cart.ShoppingCartItem.reduce(
+      (acc, item) => acc + item.quantity * Number(item.price),
+      0
+    );
 
+    // Ambil alamat default user
+    const user = await tx.user.findUnique({
+      where: { id: userId },
+      include: { UserAddress: { where: { isDefault: true }, take: 1 } },
+    });
 
+    if (!user || user.UserAddress.length === 0) {
+      throw { message: "Default shipping address not found", isExpose: true };
+    }
 
-            await tx.stockHistory.create({
-                data: {
-                    stockId: stockRecord.id,
-                    quantityOld: orderQty,
-                    quantityDiff: item.quantity,
-                    quantityNew: newQty,
-                    changeType: "DECREASE",
-                    journalType: "PURCHASE",
-                    note: `Order #${order.id} untuk produk ${item.product.name}`,
-                    createdBy: "USER"           
-                }
-            })
-            console.log("Creating StockHistory with userId:", userId);
+    const userAddress = user.UserAddress[0];
 
+    // Hitung diskon
+    const { discountAmount, appliedDiscountIds, extraItems } =
+      await validateAndCalculateDiscounts(tx, couponCodes, userId, totalPrice, storeId, cartItems);
 
-        await tx.shoppingCartItem.deleteMany({
-            where: { cartId : cart.id},
-        })
+    const finalPrice = Number((Math.max(0, totalPrice - discountAmount)).toFixed(2));
 
-        await tx.shoppingCart.update({
-            where: {id: cart.id},
-            data : {isActive: false}
-        })
+    const combinedItems = [
+      ...cart.ShoppingCartItem.map((item) => ({
+        productId: item.productId,
+        quantity: item.quantity,
+        price: Number(item.price),
+        subTotal: item.quantity * Number(item.price),
+      })),
+      ...extraItems,
+    ];
 
-        await tx.orderStatusLog.create({
-            data:{
-                orderId:order.id,
-                oldStatus: OrderStatus.INITIAL,
-                newStatus: order.status,
-                changedBy:"SYSTEM",
-                note: `Order created with status ${order.status}`
-            }
-        })
+    const order = await tx.order.create({
+      data: {
+        userId,
+        storeId,
+        totalPrice,
+        discountTotal: discountAmount,
+        finalPrice,
+        status: paymentMethod === "GOPAY" ? OrderStatus.IN_PROCESS : OrderStatus.WAITING_FOR_PAYMENT,
+        appliedDiscountIds,
+        paymentMethod,
+        OrderItems: { create: combinedItems.map((item) => ({ ...item })) },
+      },
+    });
 
-        const orderResult = {
-            order,
-            userAddress,
-            user: {
-                fullName: user.fullName,
-                phoneNumber : user.phoneNumber
-            }
-        }
+    // Update stok dan history
+    for (const item of cart.ShoppingCartItem) {
+      const stockRecord = await tx.stock.findFirst({ where: { productId: item.productId, storeId } });
+      if (!stockRecord) throw { message: `No stock found for product: ${item.product.name}` };
 
+      const newQty = stockRecord.quantity - item.quantity;
+      if (newQty < 0) throw { message: `Stock is not enough for product: ${item.product.name}` };
 
-        // buat redemption & increment usesCount kalau ada coupon
-        if (appliedDiscountIds && appliedDiscountIds.length > 0) {
-        for (const discountId of appliedDiscountIds) {
-        // buat redemption record
-        await tx.discountRedemption.create({
+      await tx.stock.update({ where: { id: stockRecord.id }, data: { quantity: newQty } });
+      await tx.stockHistory.create({
         data: {
-            discountId, // satu ID
-            userId,
-            orderId: order.id,
+          stockId: stockRecord.id,
+          quantityOld: stockRecord.quantity,
+          quantityDiff: item.quantity,
+          quantityNew: newQty,
+          changeType: "DECREASE",
+          journalType: "PURCHASE",
+          note: `Order #${order.id} untuk produk ${item.product.name}`,
+          createdBy: "USER",
         },
-});
+      });
+    }
 
-        await tx.discount.update({
-        where: { id: discountId },
-        data: { usesCount: { increment: 1 } },
+    await tx.shoppingCartItem.deleteMany({ where: { cartId: cart.id } });
+    await tx.shoppingCart.update({ where: { id: cart.id }, data: { isActive: false } });
+
+    await tx.orderStatusLog.create({
+      data: {
+        orderId: order.id,
+        oldStatus: OrderStatus.INITIAL,
+        newStatus: order.status,
+        changedBy: "SYSTEM",
+        note: `Order created with status ${order.status}`,
+      },
     });
-        }
-            return orderResult
-         }}
-    });
-}
+
+    // Buat redemption & increment useCount
+    if (appliedDiscountIds?.length) {
+      for (const discountId of appliedDiscountIds) {
+        await tx.discountRedemption.create({ data: { discountId, userId, orderId: order.id } });
+        await tx.discount.update({ where: { id: discountId }, data: { usesCount: { increment: 1 } } });
+      }
+    }
+
+    return { order, userAddress, user: { fullName: user.fullName, phoneNumber: user.phoneNumber } };
+  });
+
+  // 2. Setelah transaksi commit, buat Gopay transaction
+  if (paymentMethod === "GOPAY") {
+    const gopayTransaction = await createGopayTransaction(orderResult.order.id);
+    return { ...orderResult, gopayTransaction };
+  }
+
+  return orderResult;
+};
+
 
 export const cancelOrderService = async (orderId: string) => {
     return await prisma.$transaction(async(tx) => {

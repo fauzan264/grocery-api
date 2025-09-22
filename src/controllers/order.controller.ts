@@ -4,9 +4,15 @@ import { formatDateJakarta } from "../utils/date";
 
 export const createOrderController = async (req: Request, res: Response) => {
   const { user_id } = res.locals.payload;
-  const { storeId, couponCodes } = req.body;
+  const { storeId, couponCodes, paymentMethod } = req.body;
 
-  const orderResult = await createOrderService(user_id, storeId, couponCodes);
+  if (!storeId) throw { message: "storeId is required", isExpose: true };
+  if (!paymentMethod) throw { message: "paymentMethod is required", isExpose: true };
+  if (!['GOPAY','CREDIT_CARD','MANUAL_TRANSFER'].includes(paymentMethod))
+  throw { message: "Invalid payment method", isExpose: true };
+
+
+  const orderResult = await createOrderService(user_id, storeId, couponCodes, paymentMethod);
 
   if (!orderResult) {
     return res.status(400).json({
@@ -24,12 +30,15 @@ export const createOrderController = async (req: Request, res: Response) => {
     sub_total: order.totalPrice,
     discount: order.discountTotal,
     finalPrice: order.finalPrice,
+    paymentMethod: order.paymentMethod,
     createdAt: formatDateJakarta(order.createdAt),
     user : {
       receiverName : user.fullName,
       receiverNumber : user.phoneNumber,
       shippingAddress: userAddress
-    }
+    },
+    gopayToken: gopayTransaction?.token,
+    gopayRedirectUrl: gopayTransaction?.redirect_url,
   };
 
   return res.status(201).json({

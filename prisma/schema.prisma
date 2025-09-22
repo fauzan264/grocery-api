@@ -98,6 +98,7 @@ model Order {
   totalPrice   Decimal     @map("total_price") @db.Decimal(10,2)
   discountTotal Decimal?     @db.Decimal(10,2)
   finalPrice   Decimal     @map("final_price") @db.Decimal(10,2)
+  paymentMethod   String?  @map("payment_method")
   paymentProof String?     @map("payment_proof")
   createdAt    DateTime    @default(now()) @map("created_at")
   updatedAt    DateTime    @updatedAt @map("updated_at")
@@ -443,4 +444,11 @@ MIN_SPEND // diskon jika total order >= minSpend
 BUY_X_GET_Y // beli X dapat Y (bisa free same SKU or different SKU)
 SEASONAL // contoh: promo musiman (opsional)
 BUNDLE // contoh: bundling produk
+}
+
+enum PaymentMethod {
+  BANK_TRANSFER
+  GOPAY
+  OVO
+  DANA
 }

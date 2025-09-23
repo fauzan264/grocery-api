@@ -16,35 +16,40 @@ const snap = new midtransClient.Snap({
   clientKey: process.env.MIDTRANS_CLIENT_KEY!,
 });
 
-const coreApi = new midtransClient.CoreApi({
-  isProduction: false,
-  serverKey: process.env.MIDTRANS_SERVER_KEY!,
-  clientKey: process.env.MIDTRANS_CLIENT_KEY!,
-});
+export const gatewayPaymentService = async (orderId: string) => {
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    include: {
+      OrderItems: {
+        include: { product: true },
+      },
+      user: true,
+    },
+  });
 
-
-export const createGopayTransaction = async (orderId: string) => {
-  const order = await prisma.order.findUnique({ where: { id: orderId } });
-  if (!order) throw { message: "Order not found", isExpose: true };
-
-  const amount = Number(order.finalPrice);
+  if (!order) throw new Error("Order not found");
 
   const parameter = {
     transaction_details: {
-      order_id: orderId,
-      gross_amount: amount,
+      order_id: order.id,
+      gross_amount: Number(order.finalPrice),
     },
-    enabled_payments: ['gopay'],
+    customer_details: {
+      first_name: order.user.fullName,
+      email: order.user.email,   
+      phone: order.user.phoneNumber,
+    },
+    item_details: order.OrderItems.map((item) => ({
+      id: item.productId,
+      price: Number(item.price),
+      quantity: item.quantity,
+      name: item.product.name,
+    })),
   };
 
-  const transaction = await snap.createTransaction(parameter);
-
-  return {
-    token: transaction.token,
-    redirect_url: transaction.redirect_url,
-  };
+  const transaction = await snap.createTransaction (parameter);
+  return transaction;
 };
-
 
 
 export const uploadPaymentService = async ({

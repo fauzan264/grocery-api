@@ -489,3 +489,8 @@ model Subdistrict {
 
   @@map("subdistricts")
 }
+
+enum PaymentMethod {
+  BANK_TRANSFER
+  SNAP
+}

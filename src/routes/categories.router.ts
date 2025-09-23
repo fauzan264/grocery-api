@@ -1,4 +1,3 @@
-// src/routes/category.routes.ts
 import { Router } from "express";
 import { authMiddleware } from "../middlewares/auth.middleware";
 import { authorizeRoles } from "../middlewares/authorizeRoles.middleware";

@@ -10,6 +10,8 @@ import {
 } from "../services/product.service";
 import { AuthRequest } from "../middlewares/auth.middleware";
 import multer from "multer";
+import { prisma } from "../db/connection";
+import { destroyPublicId } from "../utils/cloudinary"; ;
 
 // Multer memory storage for small uploads (limit 1MB per image)
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 1_000_000 } });
@@ -105,12 +107,40 @@ export async function deleteProductImageHandler(req: AuthRequest, res: Response)
     }
 
     const imageId = req.params.imageId as string;
-    await deleteProductImage(imageId);
+    if (!imageId) return res.status(400).json({ success: false, message: "imageId required" });
+
+    // cari record image
+    const img = await prisma.productImage.findUnique({ where: { id: imageId } });
+    if (!img) return res.status(404).json({ success: false, message: "Image not found" });
+
+    // hapus dari Cloudinary
+    if (img.publicId) {
+      const ok = await destroyPublicId(img.publicId);
+      if (!ok) {
+        console.warn("Cloudinary destroy failed for", img.publicId);
+      }
+    }
+
+    // hapus record di DB
+    await prisma.productImage.delete({ where: { id: imageId } });
+
+    // kalau yang dihapus adalah primary, pilih image lain jadi primary
+    if (img.isPrimary) {
+      const another = await prisma.productImage.findFirst({ where: { productId: img.productId } });
+      if (another) {
+        await prisma.productImage.update({
+          where: { id: another.id },
+          data: { isPrimary: true },
+        });
+      }
+    }
 
     return res.json({ success: true, message: "Image deleted" });
   } catch (err: unknown) {
-    console.error(err);
-    const status = (err as any).status || 400;
+    console.error("deleteProductImageHandler:", err);
+    const status = typeof (err as { status?: number })?.status === "number"
+  ? (err as { status: number }).status
+  : 500;
     const message = err instanceof Error ? err.message : String(err);
     return res.status(status).json({ success: false, message });
   }

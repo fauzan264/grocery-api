@@ -36,9 +36,7 @@ export const createOrderController = async (req: Request, res: Response) => {
       receiverName : user.fullName,
       receiverNumber : user.phoneNumber,
       shippingAddress: userAddress
-    },
-    gopayToken: gopayTransaction?.token,
-    gopayRedirectUrl: gopayTransaction?.redirect_url,
+    }
   };
 
   return res.status(201).json({

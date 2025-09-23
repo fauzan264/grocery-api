@@ -1,4 +1,3 @@
-// src/routes/upload.router.ts
 import { Router } from "express";
 import { uploadFileController } from "../controllers/upload.controller";
 import { jwtVerify } from "../middlewares/jwt.verify";
@@ -11,7 +10,7 @@ uploadRouter.post(
   "/",
   jwtVerify,
   roleVerify(["SUPER_ADMIN", "ADMIN_STORE"]),
-  upload.single("file"), // field name: file
+  upload.array("files", 5),
   uploadFileController
 );
 

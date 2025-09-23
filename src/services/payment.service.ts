@@ -51,6 +51,48 @@ export const gatewayPaymentService = async (orderId: string) => {
   return transaction;
 };
 
+export const handleMidtransCallback = async (notification: any) => {
+  const { order_id, transaction_status, fraud_status } = notification;
+
+  const order = await prisma.order.findUnique({ where: { id: order_id } });
+  if (!order) throw new Error("Order not found");
+
+  let newStatus: OrderStatus | null = null;
+
+  if (transaction_status === "settlement") {
+    newStatus = OrderStatus.IN_PROCESS; 
+  } else if (transaction_status === "pending") {
+    newStatus = OrderStatus.WAITING_FOR_PAYMENT;
+  } else if (
+    transaction_status === "expire" ||
+    transaction_status === "deny" ||
+    transaction_status === "cancel"
+  ) {
+    newStatus = OrderStatus.CANCELLED;
+  }
+
+  if (newStatus && newStatus !== order.status) {
+    await prisma.$transaction(async (tx) => {
+      await tx.order.update({
+        where: { id: order_id },
+        data: { status: newStatus },
+      });
+
+      await tx.orderStatusLog.create({
+        data: {
+          orderId: order_id,
+          oldStatus: order.status,
+          newStatus,
+          changedBy: "SYSTEM",
+          note: `Midtrans callback: ${transaction_status} (fraud=${fraud_status})`,
+        },
+      });
+    });
+  }
+
+  return { ok: true };
+};
+
 
 export const uploadPaymentService = async ({
   orderId,

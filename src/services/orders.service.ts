@@ -81,7 +81,7 @@ userId: string, storeId: string, couponCodes: string[], paymentMethod: PaymentMe
         totalPrice,
         discountTotal: discountAmount,
         finalPrice,
-        status: paymentMethod === "SNAP" ? OrderStatus.IN_PROCESS : OrderStatus.WAITING_FOR_PAYMENT,
+        status: OrderStatus.WAITING_FOR_PAYMENT,
         appliedDiscountIds,
         paymentMethod,
         OrderItems: { create: combinedItems.map((item) => ({ ...item })) },

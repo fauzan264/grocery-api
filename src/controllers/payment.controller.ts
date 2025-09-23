@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { createOrderService } from "../services/orders.service";
-import { gatewayPaymentService, uploadPaymentService } from "../services/payment.service";
+import { gatewayPaymentService, handleMidtransCallback, uploadPaymentService } from "../services/payment.service";
 
 
 
@@ -17,6 +17,11 @@ export const gatewayPaymentController = async (req: Request, res: Response) => {
       success: true,
       data: transaction, 
     })};
+
+export const midtransCallbackController = async (req: Request, res: Response) => {
+    const result = await handleMidtransCallback(req.body);
+    return res.status(200).json(result);
+};
 
 export const uploadPaymentController = async (req: Request, res: Response) => {
 

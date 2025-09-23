@@ -29,7 +29,7 @@ export const createOrderController = async (req: Request, res: Response) => {
     user : {
       receiverName : user.fullName,
       receiverNumber : user.phoneNumber,
-      shippingAddress: userAddress
+      shippingAddress: userAddress.address
     },
   };
 

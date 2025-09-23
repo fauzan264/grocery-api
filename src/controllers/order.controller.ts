@@ -6,12 +6,6 @@ export const createOrderController = async (req: Request, res: Response) => {
   const { user_id } = res.locals.payload;
   const { storeId, couponCodes, paymentMethod } = req.body;
 
-  if (!storeId) throw { message: "storeId is required", isExpose: true };
-  if (!paymentMethod) throw { message: "paymentMethod is required", isExpose: true };
-  if (!['GOPAY','CREDIT_CARD','MANUAL_TRANSFER'].includes(paymentMethod))
-  throw { message: "Invalid payment method", isExpose: true };
-
-
   const orderResult = await createOrderService(user_id, storeId, couponCodes, paymentMethod);
 
   if (!orderResult) {
@@ -36,7 +30,7 @@ export const createOrderController = async (req: Request, res: Response) => {
       receiverName : user.fullName,
       receiverNumber : user.phoneNumber,
       shippingAddress: userAddress
-    }
+    },
   };
 
   return res.status(201).json({

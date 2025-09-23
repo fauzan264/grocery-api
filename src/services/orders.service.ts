@@ -2,7 +2,7 @@ import { prisma } from "../db/connection";
 import { OrderStatus, PaymentMethod } from "../generated/prisma";
 import { IOrderResult } from "../types/order";
 import { validateAndCalculateDiscounts } from "./discount.service";
-import { createGopayTransaction } from "./payment.service";
+import { gatewayPaymentService } from "./payment.service";
 
 export const createOrderService = async (
 userId: string, storeId: string, couponCodes: string[], paymentMethod: PaymentMethod) => {
@@ -81,7 +81,7 @@ userId: string, storeId: string, couponCodes: string[], paymentMethod: PaymentMe
         totalPrice,
         discountTotal: discountAmount,
         finalPrice,
-        status: paymentMethod === "GOPAY" ? OrderStatus.IN_PROCESS : OrderStatus.WAITING_FOR_PAYMENT,
+        status: paymentMethod === "SNAP" ? OrderStatus.IN_PROCESS : OrderStatus.WAITING_FOR_PAYMENT,
         appliedDiscountIds,
         paymentMethod,
         OrderItems: { create: combinedItems.map((item) => ({ ...item })) },
@@ -135,10 +135,9 @@ userId: string, storeId: string, couponCodes: string[], paymentMethod: PaymentMe
     return { order, userAddress, user: { fullName: user.fullName, phoneNumber: user.phoneNumber } };
   });
 
-  // 2. Setelah transaksi commit, buat Gopay transaction
-  if (paymentMethod === "GOPAY") {
-    const gopayTransaction = await createGopayTransaction(orderResult.order.id);
-    return { ...orderResult, gopayTransaction };
+  if (paymentMethod === "SNAP") {
+    const gatewayTransaction = await gatewayPaymentService(orderResult.order.id);
+    return { ...orderResult, gatewayTransaction };
   }
 
   return orderResult;

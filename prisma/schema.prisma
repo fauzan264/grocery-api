@@ -448,12 +448,7 @@ SEASONAL // contoh: promo musiman (opsional)
 BUNDLE // contoh: bundling produk
 }
 
-enum PaymentMethod {
-  BANK_TRANSFER
-  GOPAY
-  OVO
-  DANA
-}
+
 
 model Province {
   id          Int       @id @default(autoincrement()) @db.Integer

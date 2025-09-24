@@ -6,7 +6,7 @@ import { gatewayPaymentController, midtransCallbackController, uploadPaymentCont
 const paymentRouter = Router()
 
 paymentRouter.patch("/upload/:orderId", uploaderMulter(['image'], 'memoryStorage').single('paymentProof'),jwtVerify, uploadPaymentController);
-paymentRouter.post("/:orderId", jwtVerify, gatewayPaymentController)
+paymentRouter.post("/gateway/:orderId", jwtVerify, gatewayPaymentController)
 paymentRouter.post("/midtrans/callback", midtransCallbackController);
 
 

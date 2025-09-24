@@ -17,39 +17,45 @@ const snap = new midtransClient.Snap({
 });
 
 export const gatewayPaymentService = async (orderId: string) => {
-  const order = await prisma.order.findUnique({
-    where: { id: orderId },
-    include: {
-      OrderItems: {
-        include: { product: true },
-      },
-      user: true,
-    },
-  });
+  try {
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: { OrderItems: { include: { product: true } }, user: true },
+    });
 
-  if (!order) throw new Error("Order not found");
+    if (!order) throw new Error("Order not found");
+    if (!order.OrderItems.length) throw new Error("Order has no items");
 
-  const parameter = {
-    transaction_details: {
+    const parameter = {
+      transaction_details: {
       order_id: order.id,
-      gross_amount: Number(order.finalPrice),
+      gross_amount: Math.round(Number(order.finalPrice)), 
     },
-    customer_details: {
-      first_name: order.user.fullName,
-      email: order.user.email,   
-      phone: order.user.phoneNumber,
-    },
-    item_details: order.OrderItems.map((item) => ({
-      id: item.productId,
-      price: Number(item.price),
-      quantity: item.quantity,
-      name: item.product.name,
-    })),
-  };
+      payment_type: "gopay",
+      customer_details: {
+        first_name: order.user.fullName,
+        email: order.user.email,
+        phone: order.user.phoneNumber,
+      },
+      item_details: order.OrderItems.map((item) => ({
+        id: item.productId,
+        price: Math.round(Number(item.price)),
+        quantity: item.quantity,
+        name: item.product.name,
+      })),
+      gopay: { enable_callback: true },
+    };
 
-  const transaction = await snap.createTransaction (parameter);
-  return transaction;
+    console.log("Snap parameter:", parameter);
+
+    const transaction = await snap.createTransaction(parameter);
+    return { redirect_url: transaction.redirect_url };
+  } catch (err) {
+    console.error("GatewayPaymentService error:", err);
+    throw err;
+  }
 };
+
 
 export const handleMidtransCallback = async (notification: any) => {
   const { order_id, transaction_status, fraud_status } = notification;

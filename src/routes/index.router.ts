@@ -11,8 +11,7 @@ import categoryRouter from "./categories.router";
 import stockRouter from "./stock.router";
 import reportRouter from "./reportRoutes";
 import uploadRouter from "./upload.router";
-
-
+import shippingRouter from "./shipping.router";
 
 const mainRouter = Router();
 
@@ -23,7 +22,7 @@ mainRouter.use("/api/stores", storeRouter);
 //Order
 mainRouter.use("/api/cart", cartRouter);
 mainRouter.use("/api/orders", orderRouter);
-mainRouter.use("/api/payment",paymentRouter);
+mainRouter.use("/api/payment", paymentRouter);
 
 //Order (Admin)
 mainRouter.use("/api/admin", orderAdminRouter);
@@ -36,9 +35,12 @@ mainRouter.use("/api/categories", categoryRouter);
 mainRouter.use("/api/stocks", stockRouter);
 
 //Report
-mainRouter.use("/api/reports", reportRouter)
+mainRouter.use("/api/reports", reportRouter);
 
 //Upload image
 mainRouter.use("/api/uploads", uploadRouter);
+
+// Shipping
+mainRouter.use("/api/shipping", shippingRouter);
 
 export default mainRouter;

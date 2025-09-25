@@ -15,7 +15,6 @@ export const getAllStoreService = async ({
   province,
   city,
   district,
-  subdistrict,
   status,
   page,
   limit,
@@ -33,29 +32,34 @@ export const getAllStoreService = async ({
 
   if (province) {
     where.province = {
-      contains: province,
-      mode: "insensitive",
+      is: {
+        name: {
+          contains: province,
+          mode: "insensitive",
+        },
+      },
     };
   }
 
   if (city) {
     where.city = {
-      contains: city,
-      mode: "insensitive",
+      is: {
+        name: {
+          contains: city,
+          mode: "insensitive",
+        },
+      },
     };
   }
 
   if (district) {
     where.district = {
-      contains: district,
-      mode: "insensitive",
-    };
-  }
-
-  if (subdistrict) {
-    where.subdistrict = {
-      contains: subdistrict,
-      mode: "insensitive",
+      is: {
+        name: {
+          contains: district,
+          mode: "insensitive",
+        },
+      },
     };
   }
 
@@ -80,11 +84,33 @@ export const getAllStoreService = async ({
     orderBy: {
       createdAt: "desc",
     },
-    omit: {
+    select: {
+      id: true,
+      name: true,
+      logo: true,
+      description: true,
       address: true,
-      deletedAt: true,
-      latitude: true,
-      longitude: true,
+      status: true,
+      createdAt: true,
+      updatedAt: true,
+      province: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      city: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      district: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
     },
   });
 
@@ -129,10 +155,9 @@ export const createStoreService = async ({
   name,
   logo,
   description,
-  city,
-  province,
-  district,
-  subdistrict,
+  cityId: city_id,
+  provinceId: province_id,
+  districtId: district_id,
   address,
   latitude,
   longitude,
@@ -150,10 +175,9 @@ export const createStoreService = async ({
       name,
       logo: logoCreate.imageUrl,
       description,
-      city,
-      province,
-      district,
-      subdistrict,
+      cityId: city_id,
+      provinceId: province_id,
+      districtId: district_id,
       address,
       latitude,
       longitude,
@@ -200,10 +224,9 @@ export const updateStoreService = async ({
   name,
   logo,
   description,
-  city,
-  province,
-  district,
-  subdistrict,
+  cityId,
+  provinceId,
+  districtId,
   address,
   latitude,
   longitude,
@@ -232,10 +255,9 @@ export const updateStoreService = async ({
       name,
       logo: logoCreate.imageUrl,
       description: description ? description : getStore?.description,
-      city: city ? city : getStore?.city,
-      province: province ? province : getStore?.province,
-      district: district ? district : getStore?.district,
-      subdistrict: subdistrict ? subdistrict : getStore?.subdistrict,
+      cityId: cityId ? cityId : getStore?.cityId,
+      provinceId: provinceId ? provinceId : getStore?.provinceId,
+      districtId: districtId ? districtId : getStore?.districtId,
       address: address ? address : getStore?.address,
       latitude: latitude ? latitude : getStore?.latitude,
       longitude: longitude ? longitude : getStore?.longitude,

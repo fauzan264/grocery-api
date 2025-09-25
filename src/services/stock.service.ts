@@ -257,6 +257,7 @@ export async function listStockByStore(storeId: string, page = 1, limit = 20) {
   ]);
 
   const mapped = items.map((it) => ({
+    stockId: it.id,            
     productId: it.productId,
     productName: it.product?.name ?? null,
     quantity: it.quantity,
@@ -276,7 +277,6 @@ export const getProductStocks = async (
   const l = Math.min(100, limit);
   const skip = (p - 1) * l;
 
-  // ✅ sekarang productId & authUser ada di scope
   let whereClause: Prisma.StockWhereInput = { productId };
 
   if (authUser.role === "ADMIN_STORE") {
@@ -298,6 +298,7 @@ export const getProductStocks = async (
   ]);
 
   const mapped = items.map((it) => ({
+    stockId: it.id,            // <-- tambahkan id di sini
     storeId: it.storeId,
     storeName: it.store?.name ?? null,
     quantity: it.quantity,

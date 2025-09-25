@@ -9,15 +9,13 @@ import {
 } from "../services/store.service";
 
 export const getAllStoreController = async (req: Request, res: Response) => {
-  let { name, province, city, district, subdistrict, status, page, limit } =
-    req.query;
+  let { name, province, city, district, status, page, limit } = req.query;
 
   const stores = await getAllStoreService({
     name: name ? String(name) : undefined,
     province: province ? String(province) : undefined,
     city: city ? String(city) : undefined,
     district: district ? String(district) : undefined,
-    subdistrict: subdistrict ? String(subdistrict) : undefined,
     status: status ? String(status) : undefined,
     page: page ? Number(page) : undefined,
     limit: limit ? Number(limit) : undefined,
@@ -46,10 +44,9 @@ export const createStoreController = async (req: Request, res: Response) => {
   const {
     name,
     description,
-    city,
-    province,
-    district,
-    subdistrict,
+    city_id,
+    province_id,
+    district_id,
     address,
     latitude,
     longitude,
@@ -64,10 +61,9 @@ export const createStoreController = async (req: Request, res: Response) => {
     name,
     logo,
     description,
-    city,
-    province,
-    district,
-    subdistrict,
+    cityId: city_id,
+    provinceId: province_id,
+    districtId: district_id,
     address,
     latitude,
     longitude,
@@ -96,10 +92,9 @@ export const updateStoreController = async (req: Request, res: Response) => {
   const {
     name,
     description,
-    city,
-    province,
-    district,
-    subdistrict,
+    city_id,
+    province_id,
+    district_id,
     address,
     latitude,
     longitude,
@@ -113,10 +108,9 @@ export const updateStoreController = async (req: Request, res: Response) => {
     name,
     logo,
     description,
-    city,
-    province,
-    district,
-    subdistrict,
+    cityId: city_id,
+    provinceId: province_id,
+    districtId: district_id,
     address,
     latitude,
     longitude,

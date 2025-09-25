@@ -10,10 +10,9 @@ export interface IGetMyAddressesByIDServiceProps {
 export interface ICreateAddressesServiceProps
   extends Pick<
     UserAddress,
-    | "city"
-    | "province"
-    | "district"
-    | "subdistrict"
+    | "cityId"
+    | "provinceId"
+    | "districtId"
     | "address"
     | "latitude"
     | "longitude"
@@ -25,10 +24,9 @@ export interface ICreateAddressesServiceProps
 export interface IUpdateAddressesServiceProps
   extends Pick<
     UserAddress,
-    | "city"
-    | "province"
-    | "district"
-    | "subdistrict"
+    | "cityId"
+    | "provinceId"
+    | "districtId"
     | "address"
     | "latitude"
     | "longitude"

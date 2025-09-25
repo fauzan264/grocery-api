@@ -161,10 +161,9 @@ export const getMyStoreService = async ({ id }: Pick<User, "id">) => {
 };
 
 export const createAddressesService = async ({
-  city,
-  province,
-  district,
-  subdistrict,
+  cityId,
+  provinceId,
+  districtId,
   address,
   latitude,
   longitude,
@@ -210,10 +209,9 @@ export const createAddressesService = async ({
 
   const userAddress = await prisma.userAddress.create({
     data: {
-      city,
-      province,
-      district,
-      subdistrict,
+      cityId,
+      provinceId,
+      districtId,
       address,
       latitude,
       longitude,
@@ -237,10 +235,9 @@ export const createAddressesService = async ({
 
 export const updateAddressesService = async ({
   addressId,
-  city,
-  province,
-  district,
-  subdistrict,
+  cityId,
+  provinceId,
+  districtId,
   address,
   latitude,
   longitude,
@@ -281,10 +278,9 @@ export const updateAddressesService = async ({
 
   const userAddress = await prisma.userAddress.update({
     data: {
-      city,
-      province,
-      district,
-      subdistrict,
+      cityId,
+      provinceId,
+      districtId,
       address,
       latitude,
       longitude,

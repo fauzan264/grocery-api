@@ -42,43 +42,48 @@ enum UserProvider {
 }
 
 model UserAddress {
-  id          String    @id @default(uuid()) @db.VarChar(36)
-  city        String    @db.VarChar(100)
-  province    String    @db.VarChar(100)
-  district    String    @db.VarChar(100)
-  subdistrict String    @db.VarChar(100)
-  address     String
-  latitude    Decimal   @db.Decimal(9, 6)
-  longitude   Decimal   @db.Decimal(9, 6)
-  isDefault   Boolean   @default(false) @map("is_default")
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
-  deletedAt   DateTime? @map("deleted_at")
-  userId      String    @map("user_id") @db.VarChar(36)
-  user        User      @relation(fields: [userId], references: [id])
+  id            String      @id @default(uuid()) @db.VarChar(36)
+  provinceId    Int         @db.Integer @map("province_id")
+  cityId        Int         @db.Integer @map("city_id")
+  districtId    Int         @db.Integer @map("district_id")
+  address       String
+  latitude      Decimal     @db.Decimal(9, 6)
+  longitude     Decimal     @db.Decimal(9, 6)
+  isDefault     Boolean     @default(false) @map("is_default")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+  deletedAt     DateTime?   @map("deleted_at")
+  userId        String      @map("user_id") @db.VarChar(36)
+  user          User        @relation(fields: [userId], references: [id])
+
+  province      Province    @relation(fields: [provinceId], references: [id])
+  city          City        @relation(fields: [cityId], references: [id])
+  district      District    @relation(fields: [districtId], references: [id])
 
   @@map("user_addresses")
 }
 
 model Store {
-  id          String      @id @default(uuid()) @db.VarChar(36)
-  name        String      @db.VarChar(100)
-  logo        String      @db.VarChar(200)
-  description String
-  city        String      @db.VarChar(100)
-  province    String      @db.VarChar(100)
-  district    String?      @db.VarChar(100)
-  subdistrict String      @db.VarChar(100)
-  address     String
-  latitude    Decimal     @db.Decimal(9, 6)
-  longitude   Decimal     @db.Decimal(9, 6)
-  createdAt   DateTime    @default(now()) @map("created_at")
-  updatedAt   DateTime    @updatedAt @map("updated_at")
-  deletedAt   DateTime?   @map("deleted_at")
-  status      StoreStatus
-  stocks      Stock[]
-  UserStore   UserStore[]
-  Order       Order[]
+  id            String      @id @default(uuid()) @db.VarChar(36)
+  name          String      @db.VarChar(100)
+  logo          String      @db.VarChar(200)
+  description   String
+  provinceId    Int         @db.Integer @map("province_id")
+  cityId        Int         @db.Integer @map("city_id")
+  districtId    Int         @db.Integer @map("district_id")
+  address       String
+  latitude      Decimal     @db.Decimal(9, 6)
+  longitude     Decimal     @db.Decimal(9, 6)
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+  deletedAt     DateTime?   @map("deleted_at")
+  status        StoreStatus
+  stocks        Stock[]
+  UserStore     UserStore[]
+  Order         Order[]
+  province      Province    @relation(fields: [provinceId], references: [id])
+  city          City        @relation(fields: [cityId], references: [id])
+  district      District    @relation(fields: [districtId], references: [id])
 
   @@map("stores")
 }
@@ -112,7 +117,7 @@ model Order {
   OrderItems OrderItems[]
   StatusLogs OrderStatusLog[]
 
-  user     User      @relation(fields: [userId], references: [id])
+  user          User      @relation(fields: [userId], references: [id])
   store        Store       @relation(fields: [storeId], references: [id])
   Shipment Shipment?
 
@@ -448,12 +453,12 @@ SEASONAL // contoh: promo musiman (opsional)
 BUNDLE // contoh: bundling produk
 }
 
-
-
 model Province {
-  id          Int       @id @default(autoincrement()) @db.Integer
-  name        String
-  cities      City[]
+  id            Int       @id @default(autoincrement()) @db.Integer
+  name          String
+  cities        City[]
+  store         Store[]
+  userAddress   UserAddress[]
 
   @@map("provinces")
 }
@@ -465,6 +470,8 @@ model City {
 
   province    Province @relation(fields: [provinceId], references: [id])
   districts   District[]
+  store       Store[]
+  userAddress UserAddress[]
 
   @@map("cities")
 }
@@ -475,19 +482,10 @@ model District {
   cityId        Int
 
   city          City @relation(fields: [cityId], references: [id])
-  subdistrics   Subdistrict[]
+  store         Store[]
+  userAddress   UserAddress[]
 
   @@map("districts")
-}
-
-model Subdistrict {
-  id          Int @id @default(autoincrement()) @db.Integer
-  name        String
-  districtId  Int
-
-  district    District @relation(fields: [districtId], references: [id])
-
-  @@map("subdistricts")
 }
 
 enum PaymentMethod {

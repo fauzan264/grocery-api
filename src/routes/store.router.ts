@@ -7,11 +7,14 @@ import {
   deleteStoreController,
   getAllStoreController,
   getStoreByIdController,
+  getStoreNearbyController,
   updateStoreController,
 } from "../controllers/store.controller";
 import { uploaderMulter } from "../middlewares/uploader.multer";
 
 const storeRouter = Router();
+
+storeRouter.get("/nearby", getStoreNearbyController);
 
 storeRouter.get(
   "/",

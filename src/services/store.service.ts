@@ -10,6 +10,45 @@ import {
 } from "../types/store";
 import { cloudinaryUpload } from "../lib/cloudinary.upload";
 
+export const getStoreNearbyService = async ({
+  latitude,
+  longitude,
+  radius,
+}: {
+  latitude: number | undefined;
+  longitude: number | undefined;
+  radius: number | undefined;
+}) => {
+  if (!latitude) {
+    throw { message: "Latitude is required", isExpose: true };
+  }
+
+  if (!longitude) {
+    throw { message: "Longitude is required", isExpose: true };
+  }
+
+  let radiusLocation = 15;
+  if (radius) {
+    radiusLocation = radius;
+  }
+
+  const stores = await prisma.$queryRaw`select s.id,
+      (6371 * acos(
+        cos(radians(${latitude})) * cos(radians(s.latitude)) *
+        cos(radians(s.longitude) - radians(${longitude})) +
+        sin(radians(${latitude})) * sin(radians(s.latitude))
+      )) as distance
+    from stores s 
+    where (6371 * acos(
+      cos(radians(${latitude})) * cos(radians(s.latitude)) *
+      cos(radians(s.longitude) - radians(${longitude})) +
+      sin(radians(${latitude})) * sin(radians(s.latitude))
+    )) <= ${radiusLocation}
+    order by distance asc`;
+
+  return stores;
+};
+
 export const getAllStoreService = async ({
   name,
   province,

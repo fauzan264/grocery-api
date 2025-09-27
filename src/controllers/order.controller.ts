@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { cancelOrderService, confirmOrderService, createOrderService, getOrderDetailService, getOrdersByUserIdService } from "../services/orders.service";
-import { formatDateJakarta } from "../utils/date";
+
 
 export const createOrderController = async (req: Request, res: Response) => {
   const { user_id } = res.locals.payload;
@@ -25,7 +25,7 @@ export const createOrderController = async (req: Request, res: Response) => {
     discount: order.discountTotal,
     finalPrice: order.finalPrice,
     paymentMethod: order.paymentMethod,
-    createdAt: formatDateJakarta(order.createdAt),
+    createdAt: order.createdAt,
     user : {
       receiverName : user.fullName,
       receiverNumber : user.phoneNumber,
@@ -52,7 +52,7 @@ export const cancelOrderController = async (req: Request, res: Response)  => {
       sub_total : order.totalPrice,
       discount : order.discountTotal,
       finalPrice: order.finalPrice,
-      createdAt : formatDateJakarta(order.createdAt)
+      createdAt : order.createdAt
     }
 
   return res.status(200).json({
@@ -75,7 +75,7 @@ export const confirmOrderController = async (req: Request, res: Response)  => {
       sub_total : order.totalPrice,
       discount : order.discountTotal,
       finalPrice: order.finalPrice,
-      updatedAt : formatDateJakarta(order.updatedAt)
+      updatedAt : order.updatedAt
     }
 
   return res.status(200).json({
@@ -128,8 +128,8 @@ export const getOrdersByUserController = async (req: Request, res: Response) => 
     sub_total : order.totalPrice,
     discount : order.discountTotal,
     finalPrice: order.finalPrice,
-    createdAt : formatDateJakarta(order.createdAt),
-    updatedAt : formatDateJakarta(order.updatedAt)
+    createdAt : order.createdAt,
+    updatedAt : order.updatedAt
   }))
   
   return res.status(200).json({

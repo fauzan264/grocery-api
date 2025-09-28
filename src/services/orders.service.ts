@@ -74,6 +74,8 @@ userId: string, storeId: string, couponCodes: string[], paymentMethod: PaymentMe
       ...extraItems,
     ];
 
+    
+
     const order = await tx.order.create({
       data: {
         userId,
@@ -85,6 +87,9 @@ userId: string, storeId: string, couponCodes: string[], paymentMethod: PaymentMe
         appliedDiscountIds,
         paymentMethod,
         OrderItems: { create: combinedItems.map((item) => ({ ...item })) },
+            ...(paymentMethod === PaymentMethod.BANK_TRANSFER && {
+          expiredAt: new Date(Date.now() + 60 * 60 * 1000),
+        }),
       },
     });
 

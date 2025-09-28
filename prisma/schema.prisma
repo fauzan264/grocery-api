@@ -106,6 +106,7 @@ model Order {
   paymentMethod   String?  @map("payment_method")
   paymentProof String?     @map("payment_proof")
   createdAt    DateTime    @default(now()) @map("created_at")
+  expiredAt  DateTime?     @map("expired_at")
   updatedAt    DateTime    @updatedAt @map("updated_at")
   deletedAt    DateTime?   @map("deleted_at")
   userId       String      @map("user_id") @db.VarChar(36)

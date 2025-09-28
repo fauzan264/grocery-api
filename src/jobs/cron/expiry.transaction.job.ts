@@ -2,12 +2,11 @@ import { prisma } from "../../db/connection";
 import { OrderStatus } from "../../generated/prisma";
 
 export const expiryTransactionJobs = async () => {
-  const oneHourAgo = new Date(Date.now() - 1000 * 60);
-
   const unpaidOrders = await prisma.order.findMany({
     where: {
       status: OrderStatus.WAITING_FOR_PAYMENT,
-      createdAt: { lt: oneHourAgo },
+      paymentMethod: "BANK_TRANSFER",
+      expiredAt : {lt: new Date() }
     },
     include: {
       OrderItems: {
@@ -26,7 +25,10 @@ export const expiryTransactionJobs = async () => {
     await prisma.$transaction(async (tx) => {
       await tx.order.update({
         where: { id: order.id },
-        data: { status: OrderStatus.CANCELLED },
+        data: { 
+          status: OrderStatus.CANCELLED ,
+           expiredAt: new Date()
+        },
       });
 
       await tx.orderStatusLog.create({
@@ -35,7 +37,7 @@ export const expiryTransactionJobs = async () => {
           oldStatus: order.status,
           newStatus: OrderStatus.CANCELLED,
           changedBy: "SYSTEM",
-          note: "Order expired (no payment within 1 minute)",
+          note: "Order expired (no payment within 1 hour)",
         },
       });
 

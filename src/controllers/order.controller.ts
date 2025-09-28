@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { cancelOrderService, confirmOrderService, createOrderService, getOrderDetailService, getOrdersByUserIdService } from "../services/orders.service";
+import { OrderStatus, PaymentMethod } from "../generated/prisma";
 
 
 export const createOrderController = async (req: Request, res: Response) => {
@@ -26,6 +27,7 @@ export const createOrderController = async (req: Request, res: Response) => {
     finalPrice: order.finalPrice,
     paymentMethod: order.paymentMethod,
     createdAt: order.createdAt,
+    expireAt: order.expiredAt,
     user : {
       receiverName : user.fullName,
       receiverNumber : user.phoneNumber,
@@ -92,6 +94,7 @@ export const getOrderDetailController = async (req: Request, res: Response) => {
 
   const order = await getOrderDetailService(userId, orderId);
 
+
   const orderDetail = {
     id : order?.id,
     status: order?.status,
@@ -99,6 +102,7 @@ export const getOrderDetailController = async (req: Request, res: Response) => {
     discount : order?.discountTotal,
     finalPrice: order?.finalPrice,
     createdAt: order?.createdAt,
+    expiredAt: order?.expiredAt,
     items: order?.OrderItems.map((item)=> ({
       quantity: item.quantity,
       price: item.price,

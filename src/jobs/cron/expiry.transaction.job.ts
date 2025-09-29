@@ -24,10 +24,9 @@ export const expiryTransactionJobs = async () => {
   for (const order of unpaidOrders) {
     await prisma.$transaction(async (tx) => {
       await tx.order.update({
-        where: { id: order.id },
+        where: { id: order.id, status: OrderStatus.WAITING_FOR_PAYMENT },
         data: { 
           status: OrderStatus.CANCELLED ,
-           expiredAt: new Date()
         },
       });
 

@@ -97,8 +97,9 @@ export const getOrderDetailController = async (req: Request, res: Response) => {
 
   const orderDetail = {
     id : order?.id,
+    paymentMethod : order?.paymentMethod,
     status: order?.status,
-    totalPrice: order?.totalPrice,
+    sub_total: order?.totalPrice,
     discount : order?.discountTotal,
     finalPrice: order?.finalPrice,
     createdAt: order?.createdAt,
@@ -108,7 +109,8 @@ export const getOrderDetailController = async (req: Request, res: Response) => {
       price: item.price,
       subTotal :item.subTotal,
       product : {
-        name :item.product.name
+        name :item.product.name,
+        imageUrl : item.product.images?.[0]?.url || null
       }
     })),
     totalItems: order?.OrderItems.reduce((acc, item) => acc + item.quantity, 0)
@@ -133,7 +135,16 @@ export const getOrdersByUserController = async (req: Request, res: Response) => 
     discount : order.discountTotal,
     finalPrice: order.finalPrice,
     createdAt : order.createdAt,
-    updatedAt : order.updatedAt
+    items: order?.OrderItems.map((item)=> ({
+      quantity: item.quantity,
+      price: item.price,
+      subTotal :item.subTotal,
+      product : {
+        name :item.product.name,
+        imageUrl : item.product.images?.[0]?.url || null
+      }
+    })),
+    totalItems: order?.OrderItems.reduce((acc, item) => acc + item.quantity, 0)
   }))
   
   return res.status(200).json({

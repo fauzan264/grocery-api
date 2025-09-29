@@ -4,6 +4,8 @@ import { IOrderResult } from "../types/order";
 import { validateAndCalculateDiscounts } from "./discount.service";
 import { gatewayPaymentService } from "./payment.service";
 
+const EXPIRE_DURATION = 60 * 60 * 1000;
+
 export const createOrderService = async (
 userId: string, storeId: string, couponCodes: string[], paymentMethod: PaymentMethod) => {
   // 1. Buat order, update stok, diskon, cart, dll. di dalam transaksi
@@ -76,6 +78,13 @@ userId: string, storeId: string, couponCodes: string[], paymentMethod: PaymentMe
 
     
 
+    let expiredAt: Date | null = null;
+    if (paymentMethod === PaymentMethod.BANK_TRANSFER) {
+      expiredAt = new Date(Date.now() + EXPIRE_DURATION);
+    } else {
+      expiredAt = null; 
+    }
+
     const order = await tx.order.create({
       data: {
         userId,
@@ -86,10 +95,8 @@ userId: string, storeId: string, couponCodes: string[], paymentMethod: PaymentMe
         status: OrderStatus.WAITING_FOR_PAYMENT,
         appliedDiscountIds,
         paymentMethod,
+        expiredAt,
         OrderItems: { create: combinedItems.map((item) => ({ ...item })) },
-            ...(paymentMethod === PaymentMethod.BANK_TRANSFER && {
-          expiredAt: new Date(Date.now() + 60 * 60 * 1000),
-        }),
       },
     });
 
@@ -253,7 +260,16 @@ export const getOrderDetailService = async (userId:string, orderId:string) => {
         where: { id:orderId, userId},
         include : {
             OrderItems: {
-                include: {product:true}
+                include: {
+                  product : {
+                    include : {
+                      images : {
+                        where: { isPrimary: true},
+                        take: 1
+                      }
+                    }
+                  }
+                }
             }
         }
     });
@@ -262,6 +278,20 @@ export const getOrderDetailService = async (userId:string, orderId:string) => {
 export const getOrdersByUserIdService = async (userId: string) => {
   return await prisma.order.findMany({
     where: { userId },
+    include : {
+            OrderItems: {
+                include: {
+                  product : {
+                    include : {
+                      images : {
+                        where: { isPrimary: true},
+                        take: 1
+                      }
+                    }
+                  }
+                }
+            }
+        },
     orderBy: {
       createdAt: "desc",
     },

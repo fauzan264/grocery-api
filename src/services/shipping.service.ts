@@ -56,8 +56,6 @@ export const citiesShippingService = async ({
     };
   }
 
-  console.log(where);
-
   const cities = await prisma.city.findMany({
     where,
     select: {

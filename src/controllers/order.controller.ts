@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { cancelOrderService, confirmOrderService, createOrderService, getOrderDetailService, getOrdersByUserIdService } from "../services/orders.service";
-import { OrderStatus, PaymentMethod } from "../generated/prisma";
+
 
 
 export const createOrderController = async (req: Request, res: Response) => {
@@ -124,8 +124,13 @@ export const getOrderDetailController = async (req: Request, res: Response) => {
 
 export const getOrdersByUserController = async (req: Request, res: Response) => {
   const { userId } = res.locals.payload;
+  const { orderId, startDate, endDate } = req.query;  
 
-  const orders = await getOrdersByUserIdService(userId);
+  const orders = await getOrdersByUserIdService(userId, {
+    orderId: orderId as string,
+    startDate: startDate as string,
+    endDate: endDate as string,
+  });
 
   const orderList = orders.map((order)=>({
     id: order.id,

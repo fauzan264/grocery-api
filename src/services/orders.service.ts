@@ -275,9 +275,27 @@ export const getOrderDetailService = async (userId:string, orderId:string) => {
     });
 }
 
-export const getOrdersByUserIdService = async (userId: string) => {
+export const getOrdersByUserIdService = async (
+  userId: string,
+  filters?: { orderId?: string; startDate?: string; endDate?: string}
+) => {
+  const { orderId, startDate, endDate } = filters || {};
+
+  const start = startDate ? new Date(startDate) : undefined;
+  let end;
+  if (endDate) {
+    end = new Date(endDate);
+    end.setHours(23, 59, 59, 999); 
+  }
+
   return await prisma.order.findMany({
-    where: { userId },
+    where: { 
+      userId,
+      ...(orderId ? { id: orderId } : {}),
+      ...( start && end
+        ? {createdAt :{ gte: start, lte: end } }
+        : {})
+     },
     include : {
             OrderItems: {
                 include: {

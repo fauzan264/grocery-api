@@ -6,18 +6,25 @@ export interface CreateProductInput {
   name: string;
   description?: string;
   sku: string;
-  initialStock?: number; // untuk create stock pada store tertentu
-  storeId?: string | null; // untuk relasi ke toko saat initialStock diberikan
   price: number;
   categoryId: string;
   weight_g: number;
-  initialQuantity?: number; // backward-compat, optional
-  files?: Express.Multer.File[]; // files buffer jika ada
   user: {
     sub: string;
     role: "SUPER_ADMIN" | "ADMIN_STORE" | "CUSTOMER";
-    stores?: string[] | undefined;
+    stores?: string[];
   };
+
+  // file upload (opsional)
+  files?: Express.Multer.File[];
+
+  // stock multi-store
+  stocksPerStore?: {
+    storeId: string;
+    quantity: number;
+  }[];
+
+  // optional images kalau sudah ada URL-nya
   images?: {
     url: string;
     publicId?: string;
@@ -25,6 +32,7 @@ export interface CreateProductInput {
     altText?: string;
   }[];
 }
+
 
 export interface UpdateProductInput {
   name?: string;
@@ -34,6 +42,7 @@ export interface UpdateProductInput {
   storeId?: string | null;
   categoryId?: string;
   sku?: string | null;
+  weight_g?: number;
   images?: {
     url: string;
     publicId?: string;
@@ -50,34 +59,34 @@ export interface UpdateProductInput {
  * Create product (with optional images upload and initial stock creation)
  */
 export const createProduct = async (data: CreateProductInput) => {
-  // validate unique name/sku using findUnique is OK karena di schema sudah unique
+  // cek unique name & sku
   const existingByName = await prisma.product.findUnique({ where: { name: data.name } });
   if (existingByName) throw { status: 409, message: "Product name already exists" };
+
   if (data.sku) {
     const existingBySku = await prisma.product.findUnique({ where: { sku: data.sku } });
     if (existingBySku) throw { status: 409, message: "SKU already exists" };
   }
 
-  // upload files first (if any)
+  // upload images ke cloudinary
   const uploaded: { url: string; publicId: string }[] = [];
   if (data.files && data.files.length > 0) {
     try {
       for (const f of data.files) {
-        // uploadBufferToCloudinary harus menerima buffer dan return { url, publicId }
-        const up = await uploadBufferToCloudinary(f.buffer,
-        );
+        const up = await uploadBufferToCloudinary(f.buffer);
         uploaded.push({ url: up.url, publicId: up.publicId });
       }
     } catch (err) {
-      // jika gagal saat upload, bersihkan yang sudah terupload
       for (const u of uploaded) {
-        try { await destroyPublicId(u.publicId); } catch (_) { /* log, ignore */ }
+        try {
+          await destroyPublicId(u.publicId);
+        } catch (_) {}
       }
       throw { status: 500, message: "Failed uploading images" };
     }
   }
 
-  // Now perform DB transaction; if it fails, cleanup uploaded images
+  // transaction
   try {
     return await prisma.$transaction(async (tx) => {
       const product = await tx.product.create({
@@ -91,7 +100,7 @@ export const createProduct = async (data: CreateProductInput) => {
         },
       });
 
-      // create product images
+      // create images
       for (const [i, u] of uploaded.entries()) {
         await tx.productImage.create({
           data: {
@@ -103,34 +112,34 @@ export const createProduct = async (data: CreateProductInput) => {
         });
       }
 
-      // create initial stock if provided (perbaikan check)
-      if (data.initialStock !== undefined && data.storeId) {
-        await tx.stock.create({
-          data: {
-            productId: product.id,
-            storeId: data.storeId,
-            quantity: data.initialStock,
-          },
-        });
+      // create stock untuk setiap store
+      if (data.stocksPerStore && data.stocksPerStore.length > 0) {
+        for (const s of data.stocksPerStore) {
+          await tx.stock.create({
+            data: {
+              productId: product.id,
+              storeId: s.storeId,
+              quantity: s.quantity,
+            },
+          });
+        }
       }
 
       return tx.product.findUnique({
         where: { id: product.id },
-        include: { images: true, category: true },
+        include: { images: true, category: true, stocks: { include: { store: true } } },
       });
     });
-  } catch (txErr) {
-    // cleanup uploaded images if transaction failed
+  } catch (err) {
     for (const u of uploaded) {
-      try { await destroyPublicId(u.publicId); } catch (_) { /* log, ignore */ }
+      try {
+        await destroyPublicId(u.publicId);
+      } catch (_) {}
     }
-
-    // if prisma unique constraint error (P2002), map ke 409
-    if ((txErr as any)?.code === "P2002") {
+    if ((err as any)?.code === "P2002") {
       throw { status: 409, message: "Unique constraint failed" };
     }
-    // rethrow as generic server error
-    throw { status: 500, message: (txErr instanceof Error ? txErr.message : String(txErr)) };
+    throw { status: 500, message: (err instanceof Error ? err.message : String(err)) };
   }
 };
 
@@ -323,8 +332,13 @@ export const updateProduct = async (id: string, data: UpdateProductInput) => {
   if (data.price !== undefined) updateData.price = data.price;
   if (data.categoryId !== undefined) updateData.categoryId = data.categoryId;
   if (data.sku !== undefined) updateData.sku = data.sku;
+  if (data.weight_g !== undefined) updateData.weight_g = data.weight_g;
+
+  console.log("updateData for Prisma:", updateData);
 
   txOps.push(prisma.product.update({ where: { id }, data: updateData }));
+  
+  
 
   // add uploaded images rows
   for (const u of uploaded) txOps.push(prisma.productImage.create({ data: { productId: id, url: u.url, publicId: u.publicId } }));
@@ -361,10 +375,15 @@ export const updateProduct = async (id: string, data: UpdateProductInput) => {
     for (const u of uploaded) await destroyPublicId(u.publicId);
     throw { status: 500, message: "DB transaction failed", detail: (err as any).message };
   }
+  
+const updated = await prisma.product.findUnique({ where: { id }, include: { images: true, category: true } });
+console.log("updated product:", updated);
+return updated;
 
   // return updated
   return prisma.product.findUnique({ where: { id }, include: { images: true, category: true } });
 };
+
 
 /**
  * Hard delete product (destroy images on cloud too)

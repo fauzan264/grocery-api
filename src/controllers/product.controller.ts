@@ -43,8 +43,12 @@ export async function createProductHandler(req: AuthRequest, res: Response) {
       price: body.price !== undefined ? parseInt(String(body.price), 10) : 0,
       weight_g: body.weight_g !== undefined ? parseInt(String(body.weight_g), 10) : 0,
       categoryId: body.categoryId ?? null,
-      initialStock: body.initialStock !== undefined ? Number(body.initialStock) : undefined,
-      storeId: body.storeId ?? null,
+      stocksPerStore: Array.isArray(body.stocksPerStore)
+        ? body.stocksPerStore.map((s: any) => ({
+            storeId: String(s.storeId),
+            quantity: Number(s.quantity),
+          }))
+        : [],
       files,
       user: req.user as any,
     };
@@ -205,6 +209,7 @@ export const updateProductHandler = [
         removeImageIds: removeIds,
         files: files ?? [],
       };
+      console.log("updateProduct payload:", payload);
 
       const updated = await updateProduct(productId, payload as any);
       return res.status(200).json({ success: true, data: updated });

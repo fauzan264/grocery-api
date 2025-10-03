@@ -277,43 +277,49 @@ export const getOrderDetailService = async (userId:string, orderId:string) => {
 
 export const getOrdersByUserIdService = async (
   userId: string,
-  filters?: { orderId?: string; startDate?: string; endDate?: string}
+  filters?: { orderId?: string; startDate?: string; endDate?: string },
+  pagination?: { page?: number; limit?: number }
 ) => {
   const { orderId, startDate, endDate } = filters || {};
+  const { page = 1, limit = 10 } = pagination || {};
 
   const start = startDate ? new Date(startDate) : undefined;
   let end;
   if (endDate) {
     end = new Date(endDate);
-    end.setHours(23, 59, 59, 999); 
+    end.setHours(23, 59, 59, 999);
   }
 
-  return await prisma.order.findMany({
-    where: { 
-      userId,
-      ...(orderId ? { id: orderId } : {}),
-      ...( start && end
-        ? {createdAt :{ gte: start, lte: end } }
-        : {})
-     },
-    include : {
-            OrderItems: {
-                include: {
-                  product : {
-                    include : {
-                      images : {
-                        where: { isPrimary: true},
-                        take: 1
-                      }
-                    }
-                  }
-                }
-            }
-        },
-    orderBy: {
-      createdAt: "desc",
-    },
-  });
-};
+  const whereClause = {
+    userId,
+    ...(orderId ? { id: orderId } : {}),
+    ...(start && end ? { createdAt: { gte: start, lte: end } } : {}),
+  };
 
+  const [orders, total] = await Promise.all([
+    prisma.order.findMany({
+      where: whereClause,
+      include: {
+        OrderItems: {
+          include: {
+            product: {
+              include: {
+                images: {
+                  where: { isPrimary: true },
+                  take: 1,
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+    prisma.order.count({ where: whereClause }),
+  ]);
+
+  return { orders, total };
+};
 

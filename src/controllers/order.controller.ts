@@ -124,13 +124,15 @@ export const getOrderDetailController = async (req: Request, res: Response) => {
 
 export const getOrdersByUserController = async (req: Request, res: Response) => {
   const { userId } = res.locals.payload;
-  const { orderId, startDate, endDate } = req.query;  
+  const { orderId, startDate, endDate, page = "1", limit = "10"  } = req.query;  
 
-  const orders = await getOrdersByUserIdService(userId, {
+  const {orders, total} = await getOrdersByUserIdService(userId, {
     orderId: orderId as string,
     startDate: startDate as string,
     endDate: endDate as string,
-  });
+  },
+  { page: parseInt(page as string), limit: parseInt(limit as string) }
+);
 
   const orderList = orders.map((order)=>({
     id: order.id,
@@ -155,5 +157,11 @@ export const getOrdersByUserController = async (req: Request, res: Response) => 
   return res.status(200).json({
     message: "Orders fetched successfully",
     data: orderList,
+    meta: {
+      page: parseInt(page as string),
+      limit: parseInt(limit as string),
+      total,
+      totalPages: Math.ceil(total / parseInt(limit as string)),
+    },
   });
 };

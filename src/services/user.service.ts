@@ -95,8 +95,30 @@ export const getMyAddressesService = async ({ id }: Pick<User, "id">) => {
       userId: id,
       deletedAt: null,
     },
-    omit: {
-      deletedAt: true,
+    select: {
+      id: true,
+      address: true,
+      province: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      city: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      district: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      latitude: true,
+      longitude: true,
+      isDefault: true,
     },
   });
 
@@ -121,8 +143,30 @@ export const getMyAddressesByIDService = async ({
       userId,
       deletedAt: null,
     },
-    omit: {
-      deletedAt: true,
+    select: {
+      id: true,
+      address: true,
+      province: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      city: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      district: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      latitude: true,
+      longitude: true,
+      isDefault: true,
     },
   });
 
@@ -218,9 +262,30 @@ export const createAddressesService = async ({
       userId,
       isDefault,
     },
-    omit: {
-      userId: true,
-      deletedAt: true,
+    select: {
+      id: true,
+      address: true,
+      province: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      city: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      district: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      latitude: true,
+      longitude: true,
+      isDefault: true,
     },
   });
 
@@ -258,6 +323,32 @@ export const updateAddressesService = async ({
     throw { message: "User not found", isExpose: true };
   }
 
+  const select = {
+    id: true,
+    address: true,
+    province: {
+      select: {
+        id: true,
+        name: true,
+      },
+    },
+    city: {
+      select: {
+        id: true,
+        name: true,
+      },
+    },
+    district: {
+      select: {
+        id: true,
+        name: true,
+      },
+    },
+    latitude: true,
+    longitude: true,
+    isDefault: true,
+  };
+
   if (isDefault) {
     const getCurrentDefault = await prisma.userAddress.findFirst({
       where: {
@@ -273,6 +364,7 @@ export const updateAddressesService = async ({
       data: {
         isDefault: false,
       },
+      select,
     });
   }
 
@@ -289,10 +381,7 @@ export const updateAddressesService = async ({
     where: {
       id: addressId,
     },
-    omit: {
-      userId: true,
-      deletedAt: true,
-    },
+    select,
   });
 
   const formattedResponse = {

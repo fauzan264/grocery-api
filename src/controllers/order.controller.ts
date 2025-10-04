@@ -113,6 +113,11 @@ export const getOrderDetailController = async (req: Request, res: Response) => {
         imageUrl : item.product.images?.[0]?.url || null
       }
     })),
+    user : {
+      receiverName : order?.user.fullName,
+      receiverPhone : order?.user.phoneNumber,
+      receiverAdress : order?.user.UserAddress
+    },
     totalItems: order?.OrderItems.reduce((acc, item) => acc + item.quantity, 0)
   }
 

@@ -175,6 +175,36 @@ export const getStoreByIdService = async ({ id }: Pick<Store, "id">) => {
     where: {
       id,
     },
+    select: {
+      id: true,
+      name: true,
+      logo: true,
+      description: true,
+      address: true,
+      latitude: true,
+      longitude: true,
+      status: true,
+      createdAt: true,
+      updatedAt: true,
+      province: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      city: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      district: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
   });
 
   if (!store) {
@@ -222,8 +252,35 @@ export const createStoreService = async ({
       longitude,
       status: StoreStatus.ACTIVE,
     },
-    omit: {
-      deletedAt: true,
+    select: {
+      id: true,
+      name: true,
+      logo: true,
+      description: true,
+      address: true,
+      latitude: true,
+      longitude: true,
+      status: true,
+      createdAt: true,
+      updatedAt: true,
+      province: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      city: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      district: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
     },
   });
 
@@ -302,8 +359,35 @@ export const updateStoreService = async ({
       longitude: longitude ? longitude : getStore?.longitude,
       status: status ? status : getStore?.status,
     },
-    omit: {
-      deletedAt: true,
+    select: {
+      id: true,
+      name: true,
+      logo: true,
+      description: true,
+      address: true,
+      latitude: true,
+      longitude: true,
+      status: true,
+      createdAt: true,
+      updatedAt: true,
+      province: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      city: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      district: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
     },
   });
 

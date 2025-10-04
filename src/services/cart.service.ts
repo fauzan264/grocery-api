@@ -134,7 +134,9 @@ export const getCartItemsService = async (userId: string) => {
     include: {
       ShoppingCartItem: {
         include: {
-          product: { select: { name: true, price: true } },
+          product: { select: { name: true, price: true, weight_g:true, 
+            images: { select: { url: true, isPrimary: true } }, 
+          } },
         },
       },
     },

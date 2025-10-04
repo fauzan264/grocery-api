@@ -8,7 +8,6 @@ const EXPIRE_DURATION = 60 * 60 * 1000;
 
 export const createOrderService = async (
 userId: string, storeId: string, couponCodes: string[], paymentMethod: PaymentMethod) => {
-  // 1. Buat order, update stok, diskon, cart, dll. di dalam transaksi
   const orderResult = await prisma.$transaction(async (tx) => {
     const cart = await tx.shoppingCart.findFirst({
       where: { userId, isActive: true },
@@ -270,6 +269,9 @@ export const getOrderDetailService = async (userId:string, orderId:string) => {
                     }
                   }
                 }
+            },
+            user: {
+              include: {UserAddress: true}
             }
         }
     });

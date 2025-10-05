@@ -44,7 +44,8 @@ export const getStoreNearbyService = async ({
       cos(radians(s.longitude) - radians(${longitude})) +
       sin(radians(${latitude})) * sin(radians(s.latitude))
     )) <= ${radiusLocation}
-    order by distance asc`;
+    order by distance asc
+    limit 1`;
 
   return stores;
 };

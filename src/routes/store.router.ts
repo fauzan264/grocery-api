@@ -4,6 +4,7 @@ import { roleVerify } from "../middlewares/role.verify";
 import {
   createAssignStoreAdminController,
   createStoreController,
+  deleteStoreAdminController,
   deleteStoreController,
   getAllStoreController,
   getStoreByIdController,
@@ -53,6 +54,12 @@ storeRouter.post(
   jwtVerify,
   roleVerify(["SUPER_ADMIN"]),
   createAssignStoreAdminController
+);
+storeRouter.delete(
+  "/:id/assign-user/:userId",
+  jwtVerify,
+  roleVerify(["SUPER_ADMIN"]),
+  deleteStoreAdminController
 );
 
 export default storeRouter;

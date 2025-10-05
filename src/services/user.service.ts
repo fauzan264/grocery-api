@@ -260,7 +260,7 @@ export const createAddressesService = async ({
       latitude,
       longitude,
       userId,
-      isDefault,
+      isDefault: Boolean(isDefault),
     },
     select: {
       id: true,
@@ -357,15 +357,17 @@ export const updateAddressesService = async ({
       },
     });
 
-    await prisma.userAddress.update({
-      where: {
-        id: getCurrentDefault?.id,
-      },
-      data: {
-        isDefault: false,
-      },
-      select,
-    });
+    if (getCurrentDefault) {
+      await prisma.userAddress.update({
+        where: {
+          id: getCurrentDefault?.id,
+        },
+        data: {
+          isDefault: false,
+        },
+        select,
+      });
+    }
   }
 
   const userAddress = await prisma.userAddress.update({
@@ -376,7 +378,7 @@ export const updateAddressesService = async ({
       address,
       latitude,
       longitude,
-      isDefault,
+      isDefault: Boolean(isDefault),
     },
     where: {
       id: addressId,

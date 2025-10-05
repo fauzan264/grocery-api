@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import {
   createAssignStoreAdminService,
   createStoreService,
+  deleteStoreAdminService,
   deleteStoreService,
   getAllStoreService,
   getStoreByIdService,
@@ -159,5 +160,19 @@ export const createAssignStoreAdminController = async (
       store_name,
       full_name,
     },
+  });
+};
+
+export const deleteStoreAdminController = async (
+  req: Request,
+  res: Response
+) => {
+  const { id, userId } = req.params;
+
+  const { user, store } = await deleteStoreAdminService({ id, userId });
+
+  res.status(200).json({
+    success: true,
+    message: `Successfully removed admin '${user}' from store '${store}'.`,
   });
 };

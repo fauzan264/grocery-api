@@ -470,6 +470,50 @@ export const createAssignStoreAdminService = async ({
         isExpose: true,
       };
     }
+
+    if (error?.isExpose) {
+      throw { message: error?.message, isExpose: true };
+    }
+
     throw { message: "Internal server error", isExpose: true };
   }
+};
+
+export const deleteStoreAdminService = async ({
+  id,
+  userId,
+}: ICreateAssignStoreAdminServiceProps) => {
+  const store = await prisma.store.findUnique({
+    where: {
+      id,
+    },
+  });
+
+  if (!store) {
+    throw { message: "Store not found", isExpose: true };
+  }
+
+  const user = await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+  });
+
+  if (!user) {
+    throw { message: "User not found", isExpose: true };
+  }
+
+  await prisma.userStore.delete({
+    where: {
+      userId_storeId: {
+        storeId: store.id,
+        userId: user.id,
+      },
+    },
+  });
+
+  return {
+    user: user.fullName,
+    store: store.name,
+  };
 };

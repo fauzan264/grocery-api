@@ -12,6 +12,7 @@ import stockRouter from "./stock.router";
 import reportRouter from "./reportRoutes";
 import uploadRouter from "./upload.router";
 import shippingRouter from "./shipping.router";
+import publicRouter from "./public.router";
 
 const mainRouter = Router();
 
@@ -42,5 +43,8 @@ mainRouter.use("/api/uploads", uploadRouter);
 
 // Shipping
 mainRouter.use("/api/shipping", shippingRouter);
+
+// API Public
+mainRouter.use("/api/public", publicRouter);
 
 export default mainRouter;

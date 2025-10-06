@@ -6,24 +6,8 @@ import {
   deleteStoreService,
   getAllStoreService,
   getStoreByIdService,
-  getStoreNearbyService,
   updateStoreService,
 } from "../services/store.service";
-
-export const getStoreNearbyController = async (req: Request, res: Response) => {
-  const { latitude, longitude, radius } = req.query;
-  const stores = await getStoreNearbyService({
-    latitude: latitude ? Number(latitude) : undefined,
-    longitude: latitude ? Number(longitude) : undefined,
-    radius: radius ? Number(radius) : undefined,
-  });
-
-  res.status(200).json({
-    status: true,
-    message: "Store nearby fetched successfully.",
-    data: stores,
-  });
-};
 
 export const getAllStoreController = async (req: Request, res: Response) => {
   let { name, province, city, district, status, page, limit } = req.query;

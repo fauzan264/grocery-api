@@ -9,7 +9,7 @@
     style="
       margin: 0;
       padding: 20px;
-      background-color: #f4f4f4;
+      background-color: #064e3b;
       font-family: Arial, sans-serif;
     "
   >
@@ -20,14 +20,21 @@
       width="100%"
       style="
         max-width: 480px;
-        background-color: #ffffff;
+        background-color: #334155;
         border-radius: 8px;
         padding: 30px;
       "
     >
       <!-- Header -->
       <tr>
-        <td style="font-size: 20px; font-weight: bold; text-align: left">
+        <td
+          style="
+            font-size: 20px;
+            font-weight: bold;
+            text-align: left;
+            color: #a7f3d0;
+          "
+        >
           Email Verification
         </td>
       </tr>
@@ -38,13 +45,13 @@
           <div
             style="
               display: inline-block;
-              background-color: #28a745;
+              background-color: #fbbf24;
               border-radius: 50%;
               padding: 20px;
             "
           >
             <img
-              src="https://img.icons8.com/ios-filled/50/ffffff/checked--v1.png"
+              src="https://img.icons8.com/ios-filled/50/000000/checked--v1.png"
               alt="Verification Icon"
               width="40"
               height="40"
@@ -57,11 +64,11 @@
       <!-- Greeting -->
       <tr>
         <td style="text-align: center; padding-top: 10px">
-          <h2 style="margin: 0">Welcome, {{ fullname }} 🎉</h2>
-          <p style="margin: 10px 0 0; font-size: 16px; color: #333">
+          <h2 style="margin: 0; color: #a7f3d0">Welcome, {{ fullname }} 🎉</h2>
+          <p style="margin: 10px 0 0; font-size: 16px; color: #a7f3d0">
             Thank you for registering with us.
           </p>
-          <p style="margin: 5px 0 20px; font-size: 16px; color: #333">
+          <p style="margin: 5px 0 20px; font-size: 16px; color: #a7f3d0">
             Please verify your email address to activate your account.
           </p>
         </td>
@@ -73,13 +80,14 @@
           <a
             href="{{ verificationLink }}"
             style="
-              background-color: #28a745;
-              color: white;
+              background-color: #fbbf24;
+              color: #064e3b;
               text-decoration: none;
               padding: 12px 24px;
               border-radius: 6px;
               display: inline-block;
               font-size: 16px;
+              font-weight: bold;
             "
           >
             Verify Email
@@ -94,10 +102,10 @@
             text-align: center;
             padding-top: 20px;
             font-size: 14px;
-            color: #666;
+            color: #a7f3d0;
           "
         >
-          If you didn’t create an account, you can safely ignore this email.
+          If you didn't create an account, you can safely ignore this email.
         </td>
       </tr>
     </table>

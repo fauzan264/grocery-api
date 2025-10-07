@@ -34,6 +34,7 @@ export const authRegisterService = async ({
       process.env.JWT_SECRET_KEY!,
       {
         algorithm: "HS256",
+        expiresIn: "1h",
       }
     );
 

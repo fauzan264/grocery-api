@@ -33,14 +33,13 @@ export const updateMyProfileController = async (
   res: Response
 ) => {
   const { user_id } = res.locals.payload;
-  const { full_name, date_of_birth, email, phone_number } = req.body;
+  const { full_name, date_of_birth, phone_number } = req.body;
   const photoProfile = req.file ? req.file : undefined;
 
   const user = await updateMyProfileService({
     id: user_id,
     fullName: full_name,
     dateOfBirth: date_of_birth,
-    email,
     phoneNumber: phone_number,
     photoProfile,
   });

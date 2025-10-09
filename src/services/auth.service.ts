@@ -326,3 +326,194 @@ export const authGoogleCallbackService = async ({
     token,
   };
 };
+
+export const authChangeEmailService = async ({
+  new_email,
+  id,
+  password,
+}: Pick<User, "id" | "password"> & { new_email: string }) => {
+  // cek email apakah sudah digunakan?
+  const checkEmail = await prisma.user.findUnique({
+    where: {
+      email: new_email,
+    },
+  });
+
+  if (checkEmail) {
+    throw {
+      message: `email already in use, please use another email.`,
+      isExpose: true,
+    };
+  }
+  // cek apakah password sama dengan password di email saat ini
+  const user = await prisma.user.findUnique({
+    where: {
+      id,
+    },
+  });
+
+  if (!user || !user.password) {
+    throw { message: "User not found", isExpose: true };
+  }
+
+  if (!password) {
+    throw { message: "Password is required", isExpose: true };
+  }
+
+  const comparePassword = await bcrypt.compare(password, user?.password);
+
+  if (!comparePassword) throw { message: "Password not valid", isExpose: true };
+
+  // update email dan verifikasinya jadi false
+  await prisma.user.update({
+    where: {
+      id,
+    },
+    data: {
+      email: new_email,
+      verified: false,
+    },
+  });
+
+  // kirim ke email
+  const token = await jwtSign(
+    { user_id: user?.id },
+    process.env.JWT_SECRET_KEY!,
+    {
+      algorithm: "HS256",
+      expiresIn: "1h",
+    }
+  );
+
+  const templateHtml = fs.readFileSync("src/public/verify-email.html", "utf-8");
+  const compiledTemplateHtml = Handlebars.compile(templateHtml);
+
+  const resultTemplateHtml = compiledTemplateHtml({
+    fullName: user.fullName,
+    verificationLink: `${process.env.LINK_VERIFICATION_CHANGE_EMAIL}/${token}`,
+  });
+
+  if (user) {
+    await transporter.sendMail({
+      to: new_email,
+      subject: "Verify Your Email Address",
+      html: resultTemplateHtml,
+    });
+  }
+};
+
+export const authVerificationChangeEmailService = async ({
+  id,
+}: Pick<User, "id">) => {
+  const checkUserById = await prisma.user.findUnique({ where: { id } });
+
+  if (!checkUserById) {
+    throw { message: `User not found`, isExpose: true };
+  }
+
+  if (checkUserById.verified) {
+    throw {
+      message: `Your email is already verified. Please login to continue.`,
+      isExpose: true,
+    };
+  }
+
+  const user = await prisma.user.update({
+    data: {
+      verified: true,
+    },
+    where: {
+      id,
+    },
+    select: {
+      fullName: true,
+      email: true,
+    },
+  });
+
+  return snakecaseKeys(user);
+};
+
+export const authResendRegisterVerificationService = async ({
+  email,
+}: Pick<User, "email">) => {
+  const user = await prisma.user.findUnique({ where: { email } });
+
+  if (!user) {
+    throw { message: `User not found`, isExpose: true };
+  }
+
+  if (user.verified) {
+    throw {
+      message: `Your email is already verified. Please login to continue.`,
+      isExpose: true,
+    };
+  }
+
+  const token = await jwtSign(
+    { user_id: user?.id },
+    process.env.JWT_SECRET_KEY!,
+    {
+      algorithm: "HS256",
+      expiresIn: "1h",
+    }
+  );
+
+  const templateHtml = fs.readFileSync("src/public/verify-email.html", "utf-8");
+  const compiledTemplateHtml = Handlebars.compile(templateHtml);
+
+  const resultTemplateHtml = compiledTemplateHtml({
+    fullName: user.fullName,
+    verificationLink: `${process.env.LINK_VERIFICATION_EMAIL}/${token}`,
+  });
+
+  if (user) {
+    await transporter.sendMail({
+      to: user.email,
+      subject: "Verify Your Email Address",
+      html: resultTemplateHtml,
+    });
+  }
+};
+
+export const authResendEmailVerificationService = async ({
+  id,
+}: Pick<User, "id">) => {
+  const user = await prisma.user.findUnique({ where: { id } });
+
+  if (!user) {
+    throw { message: `User not found`, isExpose: true };
+  }
+
+  if (user.verified) {
+    throw {
+      message: `Your email is already verified. Please login to continue.`,
+      isExpose: true,
+    };
+  }
+
+  const token = await jwtSign(
+    { user_id: user?.id },
+    process.env.JWT_SECRET_KEY!,
+    {
+      algorithm: "HS256",
+      expiresIn: "1h",
+    }
+  );
+
+  const templateHtml = fs.readFileSync("src/public/verify-email.html", "utf-8");
+  const compiledTemplateHtml = Handlebars.compile(templateHtml);
+
+  const resultTemplateHtml = compiledTemplateHtml({
+    fullName: user.fullName,
+    verificationLink: `${process.env.LINK_VERIFICATION_CHANGE_EMAIL}/${token}`,
+  });
+
+  if (user) {
+    await transporter.sendMail({
+      to: user.email,
+      subject: "Verify Your Email Address",
+      html: resultTemplateHtml,
+    });
+  }
+};

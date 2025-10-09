@@ -1,12 +1,16 @@
 import { Request, Response } from "express";
 import {
+  authChangeEmailService,
   authChangePasswordService,
   authGoogleCallbackService,
   authLoginService,
   authRegisterService,
   authRequestResetPasswordService,
+  authResendEmailVerificationService,
+  authResendRegisterVerificationService,
   authResetPasswordService,
   authSessionLoginService,
+  authVerificationChangeEmailService,
   authVerificationEmailService,
 } from "../services/auth.service";
 import { oauth2Client, authorizationUrl } from "../lib/auth.google";
@@ -177,4 +181,71 @@ export const authGoogleCallbackController = async (
   }
 
   res.redirect(`${process.env.LINK_AUTH_LOGIN}?token=${result.token}`);
+};
+
+export const authChangeEmailController = async (
+  req: Request,
+  res: Response
+) => {
+  const { new_email, password } = req.body;
+  const { id } = res.locals.payload;
+
+  await authChangeEmailService({
+    new_email,
+    id,
+    password,
+  });
+
+  res.status(200).json({
+    success: true,
+    message:
+      "Email changed successfully. Check your inbox to verify your new email.",
+  });
+};
+
+export const authVerificationChangeEmailController = async (
+  req: Request,
+  res: Response
+) => {
+  const { user_id } = res.locals.payload;
+
+  const { full_name, email } = await authVerificationChangeEmailService({
+    id: user_id,
+  });
+
+  res.status(200).json({
+    success: true,
+    message: "Your email has been successfully verified.",
+    data: {
+      full_name,
+      email,
+    },
+  });
+};
+
+export const authResendRegisterVerificationController = async (
+  req: Request,
+  res: Response
+) => {
+  const { email } = req.body;
+
+  await authResendRegisterVerificationService({ email });
+
+  res.status(200).json({
+    success: true,
+    message: "Verification email has been resent. Please check your email.",
+  });
+};
+
+export const authResendEmailVerificationController = async (
+  req: Request,
+  res: Response
+) => {
+  const { user_id } = res.locals.payload;
+  await authResendEmailVerificationService({ id: user_id });
+
+  res.status(200).json({
+    success: true,
+    message: "Verification email has been resent. Please check your email.",
+  });
 };

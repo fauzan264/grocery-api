@@ -37,11 +37,18 @@ export const uploadPaymentController = async (req: Request, res: Response) => {
     }
 
   const result = await uploadPaymentService({ orderId, imageFile, userId });
-  console.log(imageFile)
+  
+  const mappedResult = {
+    orderId: result.id,
+    paymentMethod: result.paymentMethod,
+    paymentProof: result.paymentProof,
+    status: result.status,
+    createdAt: result.createdAt,
+  };
 
   res.status(201).json({
     success: true,
     message: "Payment receipt successfully uploaded",
-    order : result
+    order : mappedResult
   });
 };

@@ -42,9 +42,6 @@ export interface IDeleteAddressesServiceProps {
 }
 
 export interface IUpdateMyProfileServiceProps
-  extends Pick<
-    User,
-    "id" | "fullName" | "dateOfBirth" | "email" | "phoneNumber"
-  > {
+  extends Pick<User, "id" | "fullName" | "dateOfBirth" | "phoneNumber"> {
   photoProfile?: Express.Multer.File;
 }

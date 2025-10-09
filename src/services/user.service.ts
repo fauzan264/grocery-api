@@ -43,7 +43,6 @@ export const updateMyProfileService = async ({
   id,
   fullName,
   dateOfBirth,
-  email,
   phoneNumber,
   photoProfile,
 }: IUpdateMyProfileServiceProps) => {
@@ -76,7 +75,6 @@ export const updateMyProfileService = async ({
     data: {
       fullName: fullName ? fullName : getUser?.fullName,
       dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : getUser?.dateOfBirth,
-      email: email ? email : getUser?.email,
       phoneNumber: phoneNumber ? phoneNumber : getUser.phoneNumber,
       photoProfile: createPhoto.imageUrl,
     },

@@ -41,7 +41,7 @@ export const getOrderDetailAdminService = async ({
   userId: string;
   role: "SUPER_ADMIN" | "ADMIN_STORE";
 }) => {
-  return await prisma.order.findFirst({
+  const order = await prisma.order.findFirst({
     where: {
       id: orderId,
       ...(role === "ADMIN_STORE"
@@ -58,7 +58,24 @@ export const getOrderDetailAdminService = async ({
     },
     include: {
       OrderItems: {
-        include: { product: true }
+        select: {
+          id: true,
+          quantity: true,
+          subTotal:true,
+          product : {
+            select: {
+              id : true,
+              name: true,
+              price: true,
+              stocks: true,
+              images : {
+                where : {isPrimary:true},
+                select : {url: true},
+                take: 1
+              }
+            }
+          }
+        },  
       },
       user: {
         select: {
@@ -77,6 +94,10 @@ export const getOrderDetailAdminService = async ({
       }
     }
   });
+  if (!order) {
+     throw { message: "Order not found", isExpose: true };
+  }
+  return order
 };
 
 export const approvePaymentService = async ({user_id, orderId}:{

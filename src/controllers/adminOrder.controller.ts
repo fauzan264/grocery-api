@@ -20,10 +20,11 @@ export const getAllOrdersAdminController = async (req: Request, res: Response) =
   const mappedOrders = orders.map((order) => ({
     orderId: order.id,
     status: order.status,
-    createdAt: formatDateJakarta(order.createdAt),
+    createdAt: order.createdAt,
     totalPrice: order.totalPrice,
     discount: order.discountTotal,
     finalPrice: order.finalPrice,
+    paymentMethod: order.paymentMethod,
     paymentProof: order.paymentProof,
     customer: {
       id: order.user.id,
@@ -59,29 +60,38 @@ export const getOrderDetailController = async (req: Request, res: Response) => {
   }
 
   const mappedOrder = {
-    orderId: order.id,
-    status: order.status,
-    createdAt: formatDateJakarta(order.createdAt),
-    totalPrice: order.totalPrice,
-    discount: order.discountTotal,
-    finalPrice: order.finalPrice,
-    paymentProof: order.paymentProof,
-    customer: {
-      id: order.user.id,
-      fullName: order.user.fullName,
-      email: order.user.email,
-      phoneNumber: order.user.phoneNumber,
-      addresses: order.user.UserAddress.map((a) => a.address),
-    },
-    items: order.OrderItems.map((item) => ({
-      productId: item.productId,
-      name: item.product.name,
-      price: item.price,
-      quantity: item.quantity,
-      subTotal: item.subTotal,
-    })),
-    store: order.store ? { id: order.store.id, name: order.store.name } : null,
-  };
+  orderId: order.id,
+  status: order.status,
+  createdAt: order.createdAt,
+  totalPrice: order.totalPrice,
+  discount: order.discountTotal,
+  finalPrice: order.finalPrice,
+  paymentMethod: order.paymentMethod,
+  paymentProof: order.paymentProof,
+  customer: {
+    id: order.user.id,
+    fullName: order.user.fullName,
+    email: order.user.email,
+    phoneNumber: order.user.phoneNumber,
+    addresses: order.user.UserAddress.map((addr) => addr.address),
+  },
+  items: order.OrderItems.map((item) => ({
+    productId: item.product.id,
+    name: item.product.name,
+    price: item.product.price,
+    quantity: item.quantity,
+    stock: item.product.stocks,
+    imageUrl: item.product.images?.[0]?.url || null, 
+    subTotal: item.subTotal,
+  })),
+  store: order.store
+    ? {
+        id: order.store.id,
+        name: order.store.name,
+      }
+    : null,
+};
+
 
   return res.status(200).json({
     message: `Get order: ${orderId} detail successfully`,

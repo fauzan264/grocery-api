@@ -27,7 +27,8 @@ export const authRegisterController = async (req: Request, res: Response) => {
 
   res.status(201).json({
     success: true,
-    message: "Register user successful",
+    message:
+      "Registration successful. Please check your email to verify your account.",
     data: {
       full_name: user?.full_name,
       email: user?.email,
@@ -188,11 +189,11 @@ export const authChangeEmailController = async (
   res: Response
 ) => {
   const { new_email, password } = req.body;
-  const { id } = res.locals.payload;
+  const { user_id } = res.locals.payload;
 
   await authChangeEmailService({
     new_email,
-    id,
+    id: user_id,
     password,
   });
 
@@ -247,5 +248,13 @@ export const authResendEmailVerificationController = async (
   res.status(200).json({
     success: true,
     message: "Verification email has been resent. Please check your email.",
+  });
+};
+
+export const authValidateController = async (req: Request, res: Response) => {
+  res.status(200).json({
+    success: true,
+    message: `Token validated successfully`,
+    data: res.locals.payload,
   });
 };

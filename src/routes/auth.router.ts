@@ -11,6 +11,8 @@ import {
   authResendRegisterVerificationController,
   authResetPasswordController,
   authSessionLoginController,
+  authValidateController,
+  authVerificationChangeEmailController,
   authVerificationEmailController,
 } from "../controllers/auth.controller";
 import { jwtVerify } from "../middlewares/jwt.verify";
@@ -28,7 +30,11 @@ authRouter.get("/session", jwtVerify, authSessionLoginController);
 authRouter.get("/google", authGoogleController);
 authRouter.get("/google/callback", authGoogleCallbackController);
 authRouter.post("/email/change", jwtVerify, authChangeEmailController);
-authRouter.post("/verify-email", jwtVerify, authVerificationEmailController);
+authRouter.post(
+  "/email/verify-email",
+  jwtVerify,
+  authVerificationChangeEmailController
+);
 authRouter.post(
   "/register/resend-verification",
   limiter,
@@ -40,5 +46,6 @@ authRouter.post(
   jwtVerify,
   authResendEmailVerificationController
 );
+authRouter.post("/validate", jwtVerify, authValidateController);
 
 export default authRouter;

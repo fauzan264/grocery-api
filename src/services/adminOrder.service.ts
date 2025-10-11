@@ -191,37 +191,32 @@ export const declinePaymentService = async ({user_id, orderId}:{
   })
 }
 
-export const cancelOrderAdminService = async (userId:string, role: string, orderId:string) => {
+export const cancelOrderAdminService = async (
+  userId: string,
+  orderId: string,
+  storeId: string,
+  role: string = "ADMIN_STORE") => {
   return await prisma.$transaction(async(tx) => {
     const order = await tx.order.findFirst({
       where: {
-        id:orderId,
-        ...(role === "ADMIN_STORE"
-        ? {
-            store: {
-              UserStore: {
-                some: {
-                  userId 
-                }
-              }
-            }
-          }
-        : {})
+        id: orderId
       },
-      
       include: {
         OrderItems: {
-          include: {product:{include:{stocks:true}}}
+          include: { product: { include: { stocks: true } } }
+        },
+        store: {
+          select: { id: true, name: true }
         }
       }
-    })
+    });
 
     if(!order){
       throw {message: "Order not found", isExpose:true}
     }
 
 
-    if(order.status !== OrderStatus.WAITING_CONFIRMATION_PAYMENT && order.status !== OrderStatus.IN_PROCESS){
+    if(order.status !== OrderStatus.WAITING_FOR_PAYMENT && order.status !== OrderStatus.WAITING_CONFIRMATION_PAYMENT && order.status !== OrderStatus.IN_PROCESS){
       throw{ message: `Order with status ${order.status} can not be cancelled`}
     }
 
@@ -248,7 +243,7 @@ export const cancelOrderAdminService = async (userId:string, role: string, order
       }
     })
 
-    for (const item of order.OrderItems){
+    for (const item of cancelOrder.OrderItems){
             const stocksRecord = item.product.stocks.find(s => s.storeId === order.storeId);
             if (stocksRecord) {
                 const oldQty = stocksRecord.quantity

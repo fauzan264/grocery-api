@@ -6,6 +6,7 @@ import {
   createStoreController,
   deleteStoreAdminController,
   deleteStoreController,
+  getAllAdminStoreController,
   getAllStoreController,
   getStoreByIdController,
   updateStoreController,
@@ -57,6 +58,12 @@ storeRouter.delete(
   jwtVerify,
   roleVerify(["SUPER_ADMIN"]),
   deleteStoreAdminController
+);
+storeRouter.get(
+  "/:id/assign-user",
+  jwtVerify,
+  roleVerify(["SUPER_ADMIN"]),
+  getAllAdminStoreController
 );
 
 export default storeRouter;

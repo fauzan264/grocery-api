@@ -146,6 +146,51 @@ export const approvePaymentService = async ({user_id, orderId}:{
   })
 }
 
+export const declinePaymentService = async ({user_id, orderId}:{
+  user_id : string
+  orderId : string,
+}) => {
+  return await prisma.$transaction(async(tx) => {
+    const order = await tx.order.findFirst({
+      where: {
+        id: orderId,
+        status : OrderStatus.WAITING_CONFIRMATION_PAYMENT
+      }
+    })
+
+     if(!order){
+      throw { message: "No Order Found", isExpose: true }
+    }
+
+    const user = await tx.user.findUnique({
+      where: { id: user_id },
+      select: { fullName: true },
+    });
+
+    if (!user) {
+      throw { message: "Approver not found", isExpose: true };
+    }
+
+    const updateOrder = await tx.order.update ({
+      where : {id: orderId},
+      data: {
+        status: OrderStatus.WAITING_FOR_PAYMENT
+      }
+    })
+
+    const statusLog = await tx.orderStatusLog.create({
+            data:{
+                orderId:order.id,
+                oldStatus: OrderStatus.WAITING_CONFIRMATION_PAYMENT,
+                newStatus: updateOrder.status,
+                changedBy:`ADMIN (${user.fullName})`,
+                note: `Payment Declined due to invalid payment proof for order: ${orderId}`
+            }
+        })
+        return { ...updateOrder, decliner: user.fullName, statusLog };
+  })
+}
+
 export const cancelOrderAdminService = async (userId:string, role: string, orderId:string) => {
   return await prisma.$transaction(async(tx) => {
     const order = await tx.order.findFirst({

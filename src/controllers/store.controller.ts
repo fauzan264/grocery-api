@@ -4,6 +4,7 @@ import {
   createStoreService,
   deleteStoreAdminService,
   deleteStoreService,
+  getAllAdminStoreService,
   getAllStoreService,
   getStoreByIdService,
   updateStoreService,
@@ -158,5 +159,26 @@ export const deleteStoreAdminController = async (
   res.status(200).json({
     success: true,
     message: `Successfully removed admin '${user}' from store '${store}'.`,
+  });
+};
+
+export const getAllAdminStoreController = async (
+  req: Request,
+  res: Response
+) => {
+  const { id } = req.params;
+  const { name, page, limit } = req.query;
+
+  const store_admins = await getAllAdminStoreService({
+    id,
+    name: name ? String(name) : undefined,
+    page: page ? Number(page) : undefined,
+    limit: page ? Number(limit) : undefined,
+  });
+
+  res.status(200).json({
+    success: true,
+    message: "Successfully fetched list of stores",
+    data: store_admins,
   });
 };

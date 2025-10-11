@@ -477,3 +477,66 @@ export const deleteStoreAdminService = async ({
     store: store.name,
   };
 };
+
+export const getAllAdminStoreService = async ({
+  id,
+  name,
+  page,
+  limit,
+}: {
+  id: string | undefined;
+  name: string | undefined;
+  page: number | undefined;
+  limit: number | undefined;
+}) => {
+  const where: any = {
+    storeId: id,
+  };
+  if (name) {
+    where.user = {
+      is: {
+        fullName: {
+          contains: name,
+          mode: "insensitive",
+        },
+      },
+    };
+  }
+
+  const pageNumber = Math.max(Number(page) || 1, 1);
+  const limitNumber = Math.max(Number(limit) || 10, 1);
+  const offset = (pageNumber - 1) * limitNumber;
+
+  const totalData = await prisma.userStore.count({
+    where: Object.keys(where).length > 0 ? where : undefined,
+  });
+
+  const totalPage = Math.ceil(totalData / limitNumber);
+
+  const store_admins = await prisma.userStore.findMany({
+    where: Object.keys(where).length > 0 ? where : {},
+    skip: offset,
+    take: limitNumber,
+    select: {
+      user: {
+        select: {
+          fullName: true,
+        },
+      },
+    },
+  });
+
+  const response = {
+    store_admins: store_admins.map((admin) =>
+      snakecaseKeys(admin, { deep: true })
+    ),
+    pagination: {
+      current_page: pageNumber,
+      per_page: limitNumber,
+      total_data: totalData,
+      total_page: totalPage,
+    },
+  };
+
+  return response;
+};

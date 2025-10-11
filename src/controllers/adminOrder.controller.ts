@@ -147,12 +147,19 @@ export const declinePaymentController = async (req: Request, res: Response) => {
   })
 }
 export const cancelOrderAdminController = async (req: Request, res: Response) => {
-  const {userId, storeId} = res.locals.payload
+  const {user_id, storeId} = res.locals.payload
   const {orderId} = req.params
 
   console.log("Full Payload:", res.locals.payload);
+  console.log("=== Controller Debug ===");
+  console.log("Parameters:", { user_id, storeId, orderId });
 
-  const order = await cancelOrderAdminService(userId, orderId, storeId);
+  const order = await cancelOrderAdminService(
+      user_id,
+      orderId,
+      storeId,
+      "ADMIN_STORE"
+    );
 
 
 

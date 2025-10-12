@@ -281,3 +281,12 @@ export const cancelOrderAdminService = async (
         return cancelOrder
   })
 }
+
+export const getOrderStatusLogsService = async (userId:string, orderId: string) => {
+  return await prisma.orderStatusLog.findMany({
+    where: { orderId },
+    orderBy: {
+      createdAt: "asc", 
+    },
+  });
+};

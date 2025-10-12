@@ -1,8 +1,8 @@
 import { Request, Response } from "express";
-import { approvePaymentService, cancelOrderAdminService,  declinePaymentService,  getAllOrdersAdminService, getOrderDetailAdminService } from "../services/adminOrder.service";
-import { formatDateJakarta } from "../utils/date";
+import { approvePaymentService, cancelOrderAdminService,  declinePaymentService,  getAllOrdersAdminService, getOrderDetailAdminService,getOrderStatusLogsService } from "../services/adminOrder.service";
+
 import { UserRole } from "../generated/prisma";
-import { log } from "console";
+
 
 export const getAllOrdersAdminController = async (req: Request, res: Response) => {
     
@@ -160,10 +160,6 @@ export const cancelOrderAdminController = async (req: Request, res: Response) =>
       storeId,
       "ADMIN_STORE"
     );
-
-
-
-
   const cancelOrder = {
     id: order.id,
     status : order.status,
@@ -180,3 +176,17 @@ export const cancelOrderAdminController = async (req: Request, res: Response) =>
     data: cancelOrder,
   });
 }
+
+export const getOrderStatusLogController = async (req: Request, res: Response) => {
+  const {user_id} = res.locals.payload
+  const {orderId} = req.params
+
+  const statusLog = await getOrderStatusLogsService (user_id, orderId)
+
+  return res.status(200).json({
+    message: `Get order: ${orderId} detail successfully`,
+    data: statusLog
+  });
+}
+
+

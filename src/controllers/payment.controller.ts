@@ -1,10 +1,6 @@
 import { Request, Response } from "express";
 import { createOrderService } from "../services/orders.service";
-<<<<<<< Updated upstream
 import { gatewayPaymentService, handleMidtransCallback, uploadPaymentService } from "../services/payment.service";
-=======
-import { gatewayPaymentService, uploadPaymentService } from "../services/payment.service";
->>>>>>> Stashed changes
 
 
 
@@ -22,14 +18,11 @@ export const gatewayPaymentController = async (req: Request, res: Response) => {
       data: transaction, 
     })};
 
-<<<<<<< Updated upstream
 export const midtransCallbackController = async (req: Request, res: Response) => {
     const result = await handleMidtransCallback(req.body);
     return res.status(200).json(result);
 };
 
-=======
->>>>>>> Stashed changes
 export const uploadPaymentController = async (req: Request, res: Response) => {
 
     const {userId} = res.locals.payload

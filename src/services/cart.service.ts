@@ -63,13 +63,19 @@ export const updateCartItemService = async ({
       cart: { userId, isActive: true },
     },
     include: {
-      product: { select: { name: true, price: true } },
+      product: { 
+        select: { 
+          name: true, 
+          price: true,
+          stocks: { select: { storeId: true, quantity: true } } } },
     },
   });
 
   if (!existingItem) {
     throw { message: "Item not found in cart", isExpose: true };
   }
+
+  
 
   let newQuantity =
     action === "increment"
@@ -83,6 +89,18 @@ export const updateCartItemService = async ({
     return { message: "Item removed from cart" };
   }
 
+  const globalQty = existingItem.product.stocks.reduce(
+  (acc, stock) => acc + stock.quantity,
+  0
+);
+
+if (newQuantity > globalQty) {
+  throw {
+    message: `Stock is not enough for product: ${existingItem.product.name}`,
+    isExpose: true,
+  };
+}
+
   return prisma.shoppingCartItem.update({
   where: { id: existingItem.id },
   data: {
@@ -91,9 +109,8 @@ export const updateCartItemService = async ({
   },
   include: {
     product: { select: { name: true, price: true } },
-  },
-});
-;
+    },
+  });
 };
 
 

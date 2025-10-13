@@ -17,7 +17,6 @@ const snap = new midtransClient.Snap({
 });
 
 export const gatewayPaymentService = async (orderId: string) => {
-<<<<<<< Updated upstream
   try {
     const order = await prisma.order.findUnique({
       where: { id: orderId },
@@ -101,43 +100,6 @@ export const handleMidtransCallback = async (notification: any) => {
 };
 
 
-=======
-  const order = await prisma.order.findUnique({
-    where: { id: orderId },
-    include: {
-      OrderItems: {
-        include: { product: true },
-      },
-      user: true,
-    },
-  });
-
-  if (!order) throw new Error("Order not found");
-
-  const parameter = {
-    transaction_details: {
-      order_id: order.id,
-      gross_amount: Number(order.finalPrice),
-    },
-    customer_details: {
-      first_name: order.user.fullName,
-      email: order.user.email,   
-      phone: order.user.phoneNumber,
-    },
-    item_details: order.OrderItems.map((item) => ({
-      id: item.productId,
-      price: Number(item.price),
-      quantity: item.quantity,
-      name: item.product.name,
-    })),
-  };
-
-  const transaction = await snap.createTransaction (parameter);
-  return transaction;
-};
-
-
->>>>>>> Stashed changes
 export const uploadPaymentService = async ({
   orderId,
   imageFile,

@@ -162,14 +162,11 @@ model OrderStatusLog {
 model Shipment {
   id             String    @id @default(uuid()) @db.VarChar(36)
   orderId        String    @unique @map("order_id") @db.VarChar(36)
-  trackingNumber String    @unique @map("tracking_number") @db.VarChar(50)
-  courier        String    @db.VarChar(10)
-  service        String    @db.VarChar(30)
+  courier        String    @db.VarChar(100)
+  service        String    @db.VarChar(100)
   shippingCost   Decimal   @map("shipping_cost") @db.Decimal(10,2)
   shippingDays   String    @map("shipping_days") @db.VarChar(30)
   createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
-  deletedAt      DateTime? @map("deleted_at")
   order          Order     @relation(fields: [orderId], references: [id])
 
   @@map("shipments")

@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "public"."shipments" ALTER COLUMN "courier" SET DATA TYPE VARCHAR(100),
+ALTER COLUMN "service" SET DATA TYPE VARCHAR(100);

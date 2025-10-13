@@ -216,9 +216,9 @@ export const createAddressesController = async (
   } = req.body;
 
   const userAddress = await createAddressesService({
-    cityId: city_id,
-    provinceId: province_id,
-    districtId: district_id,
+    cityId: Number(city_id),
+    provinceId: Number(province_id),
+    districtId: Number(district_id),
     address,
     latitude,
     longitude,
@@ -250,9 +250,9 @@ export const updateAddressesController = async (
 
   const userAddress = await updateAddressesService({
     addressId,
-    cityId: city_id,
-    provinceId: province_id,
-    districtId: district_id,
+    cityId: Number(city_id),
+    provinceId: Number(province_id),
+    districtId: Number(district_id),
     address,
     latitude,
     longitude,

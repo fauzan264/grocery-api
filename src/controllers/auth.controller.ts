@@ -17,7 +17,7 @@ import { oauth2Client, authorizationUrl } from "../lib/auth.google";
 import { google } from "googleapis";
 
 export const authRegisterController = async (req: Request, res: Response) => {
-  const { full_name, date_of_birth, email, phone_number } = req.body;
+  const { full_name, email, phone_number } = req.body;
 
   const user = await authRegisterService({
     fullName: full_name,

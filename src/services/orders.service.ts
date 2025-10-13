@@ -1,13 +1,19 @@
 import { prisma } from "../db/connection";
 import { OrderStatus, PaymentMethod } from "../generated/prisma";
 import { IOrderResult } from "../types/order";
+import { IShipment } from "../types/shipment";
 import { validateAndCalculateDiscounts } from "./discount.service";
 import { gatewayPaymentService } from "./payment.service";
 
 const EXPIRE_DURATION = 60 * 60 * 1000;
 
 export const createOrderService = async (
-userId: string, storeId: string, couponCodes: string[], paymentMethod: PaymentMethod) => {
+  userId: string,
+  storeId: string,
+  couponCodes: string[],
+  paymentMethod: PaymentMethod,
+  shipment: IShipment
+) => {
   const orderResult = await prisma.$transaction(async (tx) => {
     const cart = await tx.shoppingCart.findFirst({
       where: { userId, isActive: true },
@@ -28,10 +34,15 @@ userId: string, storeId: string, couponCodes: string[], paymentMethod: PaymentMe
     for (const item of cart.ShoppingCartItem) {
       const localStock = item.product.stocks.find((s) => s.storeId === storeId);
       const localQty = localStock ? localStock.quantity : 0;
-      const globalQty = item.product.stocks.reduce((acc, stock) => acc + stock.quantity, 0);
+      const globalQty = item.product.stocks.reduce(
+        (acc, stock) => acc + stock.quantity,
+        0
+      );
 
       if (item.quantity > localQty && item.quantity > globalQty) {
-        throw { message: `Stock is not enough for product: ${item.product.name}` };
+        throw {
+          message: `Stock is not enough for product: ${item.product.name}`,
+        };
       }
     }
 
@@ -61,9 +72,20 @@ userId: string, storeId: string, couponCodes: string[], paymentMethod: PaymentMe
 
     // Hitung diskon
     const { discountAmount, appliedDiscountIds, extraItems } =
-      await validateAndCalculateDiscounts(tx, couponCodes, userId, totalPrice, storeId, cartItems);
+      await validateAndCalculateDiscounts(
+        tx,
+        couponCodes,
+        userId,
+        totalPrice,
+        storeId,
+        cartItems
+      );
 
-    const finalPrice = Number((Math.max(0, totalPrice - discountAmount)).toFixed(2));
+    const finalPrice = Number(
+      Math.max(0, totalPrice + shipment.shipping_cost - discountAmount).toFixed(
+        2
+      )
+    );
 
     const combinedItems = [
       ...cart.ShoppingCartItem.map((item) => ({
@@ -75,13 +97,11 @@ userId: string, storeId: string, couponCodes: string[], paymentMethod: PaymentMe
       ...extraItems,
     ];
 
-    
-
     let expiredAt: Date | null = null;
     if (paymentMethod === PaymentMethod.BANK_TRANSFER) {
       expiredAt = new Date(Date.now() + EXPIRE_DURATION);
     } else {
-      expiredAt = null; 
+      expiredAt = null;
     }
 
     const order = await tx.order.create({
@@ -99,15 +119,36 @@ userId: string, storeId: string, couponCodes: string[], paymentMethod: PaymentMe
       },
     });
 
+    const orderShipment = await tx.shipment.create({
+      data: {
+        orderId: order.id,
+        courier: shipment.courier,
+        service: shipment.service,
+        shippingCost: shipment.shipping_cost,
+        shippingDays: shipment.shipping_days,
+      },
+    });
+
+    console.log(orderShipment);
+
     // Update stok dan history
     for (const item of cart.ShoppingCartItem) {
-      const stockRecord = await tx.stock.findFirst({ where: { productId: item.productId, storeId } });
-      if (!stockRecord) throw { message: `No stock found for product: ${item.product.name}` };
+      const stockRecord = await tx.stock.findFirst({
+        where: { productId: item.productId, storeId },
+      });
+      if (!stockRecord)
+        throw { message: `No stock found for product: ${item.product.name}` };
 
       const newQty = stockRecord.quantity - item.quantity;
-      if (newQty < 0) throw { message: `Stock is not enough for product: ${item.product.name}` };
+      if (newQty < 0)
+        throw {
+          message: `Stock is not enough for product: ${item.product.name}`,
+        };
 
-      await tx.stock.update({ where: { id: stockRecord.id }, data: { quantity: newQty } });
+      await tx.stock.update({
+        where: { id: stockRecord.id },
+        data: { quantity: newQty },
+      });
       await tx.stockHistory.create({
         data: {
           stockId: stockRecord.id,
@@ -123,7 +164,10 @@ userId: string, storeId: string, couponCodes: string[], paymentMethod: PaymentMe
     }
 
     await tx.shoppingCartItem.deleteMany({ where: { cartId: cart.id } });
-    await tx.shoppingCart.update({ where: { id: cart.id }, data: { isActive: false } });
+    await tx.shoppingCart.update({
+      where: { id: cart.id },
+      data: { isActive: false },
+    });
 
     await tx.orderStatusLog.create({
       data: {
@@ -138,144 +182,160 @@ userId: string, storeId: string, couponCodes: string[], paymentMethod: PaymentMe
     // Buat redemption & increment useCount
     if (appliedDiscountIds?.length) {
       for (const discountId of appliedDiscountIds) {
-        await tx.discountRedemption.create({ data: { discountId, userId, orderId: order.id } });
-        await tx.discount.update({ where: { id: discountId }, data: { usesCount: { increment: 1 } } });
+        await tx.discountRedemption.create({
+          data: { discountId, userId, orderId: order.id },
+        });
+        await tx.discount.update({
+          where: { id: discountId },
+          data: { usesCount: { increment: 1 } },
+        });
       }
     }
 
-    return { order, userAddress, user: { fullName: user.fullName, phoneNumber: user.phoneNumber } };
+    return {
+      order,
+      userAddress,
+      user: { fullName: user.fullName, phoneNumber: user.phoneNumber },
+    };
   });
 
   if (paymentMethod === "SNAP") {
-    const gatewayTransaction = await gatewayPaymentService(orderResult.order.id);
+    const gatewayTransaction = await gatewayPaymentService(
+      orderResult.order.id
+    );
     return { ...orderResult, gatewayTransaction };
   }
 
   return orderResult;
 };
 
-
 export const cancelOrderService = async (orderId: string) => {
-    return await prisma.$transaction(async(tx) => {
-        const order = await tx.order.findUnique({
-            where: {id : orderId},
-            include: {
-            OrderItems: {
-                include:{
-                    product: {
-                        include: {stocks:true}
-                    }
-                }
-            }
-        }
+  return await prisma.$transaction(async (tx) => {
+    const order = await tx.order.findUnique({
+      where: { id: orderId },
+      include: {
+        OrderItems: {
+          include: {
+            product: {
+              include: { stocks: true },
+            },
+          },
+        },
+      },
+    });
+
+    if (!order) {
+      throw { message: "Order not found", isExpose: true };
+    }
+
+    if (order.status !== OrderStatus.WAITING_FOR_PAYMENT) {
+      throw { message: "Only unpaid orders can be cancelled", isExpose: true };
+    }
+
+    const cancelOrder = await tx.order.update({
+      where: { id: orderId },
+      data: { status: OrderStatus.CANCELLED },
+    });
+
+    for (const item of order.OrderItems) {
+      const stocksRecord = item.product.stocks[0];
+      if (stocksRecord) {
+        const oldQty = stocksRecord.quantity;
+        const newQty = oldQty + item.quantity;
+        await tx.stock.update({
+          where: { id: stocksRecord.id },
+          data: { quantity: newQty },
         });
 
-        if(!order) {
-            throw { message: "Order not found", isExpose: true };
-        }
+        await tx.stockHistory.create({
+          data: {
+            stockId: stocksRecord.id,
+            quantityOld: oldQty,
+            quantityDiff: item.quantity,
+            quantityNew: newQty,
+            changeType: "INCREASE",
+            journalType: "RETURN",
+            note: `Return stock from cancelled order #${orderId}`,
+            createdBy: "USER",
+          },
+        });
+      }
+    }
 
-        if (order.status !== OrderStatus.WAITING_FOR_PAYMENT) {
-            throw { message: "Only unpaid orders can be cancelled", isExpose: true };
-        }
+    await tx.orderStatusLog.create({
+      data: {
+        orderId: order.id,
+        oldStatus: order.status,
+        newStatus: OrderStatus.CANCELLED,
+        changedBy: "USER",
+        note: "Order cancelled by user",
+      },
+    });
 
-        const cancelOrder = await tx.order.update({
-            where: {id: orderId},
-            data: {status: OrderStatus.CANCELLED}
-        })
-
-        for (const item of order.OrderItems){
-            const stocksRecord = item.product.stocks[0]
-            if (stocksRecord) {
-                const oldQty = stocksRecord.quantity
-                const newQty = oldQty + item.quantity
-                await tx.stock.update({
-                    where: {id : stocksRecord.id},
-                    data: {quantity: newQty}
-                })
-
-                await tx.stockHistory.create({
-                    data: {
-                        stockId: stocksRecord.id,
-                        quantityOld: oldQty,
-                        quantityDiff: item.quantity,
-                        quantityNew: newQty,
-                        changeType: "INCREASE",
-                        journalType: "RETURN",
-                        note: `Return stock from cancelled order #${orderId}`,
-                        createdBy: "USER"           
-                    }
-                })
-            }
-        }
-
-        await tx.orderStatusLog.create({
-            data:{
-                orderId:order.id,
-                oldStatus: order.status,
-                newStatus: OrderStatus.CANCELLED,
-                changedBy:"USER",
-                note: "Order cancelled by user"
-            }
-        })
-
-        return cancelOrder
-    })
-}
+    return cancelOrder;
+  });
+};
 
 export const confirmOrderService = async (orderId: string) => {
-    return await prisma.$transaction(async(tx) => {
-        const order = await tx.order.findUnique({
-            where: {id : orderId}
-        })
-
-        if(!order) {
-            throw { message: "Order not found", isExpose: true };
-        }
-
-        if (order.status !== OrderStatus.DELIVERED) {
-            throw { message: "Only delivered order can be confirmed", isExpose: true };
-        }
-
-        const confirmOrder = await tx.order.update({
-            where: {id: orderId},
-            data: {status: OrderStatus.ORDER_CONFIRMATION}
-        })
-
-        await tx.orderStatusLog.create({
-            data:{
-                orderId:order.id,
-                oldStatus: order.status,
-                newStatus: OrderStatus.ORDER_CONFIRMATION,
-                changedBy:"USER",
-                note: "Order has been delivered"
-            }
-        })
-        return confirmOrder
-    }) 
-}
-
-export const getOrderDetailService = async (userId:string, orderId:string) => {
-    return await prisma.order.findFirst({
-        where: { id:orderId, userId},
-        include : {
-            OrderItems: {
-                include: {
-                  product : {
-                    include : {
-                      images : {
-                        where: { isPrimary: true},
-                        take: 1
-                      }
-                    }
-                  }
-                }
-            },
-            user: {
-              include: {UserAddress: true}
-            }
-        }
+  return await prisma.$transaction(async (tx) => {
+    const order = await tx.order.findUnique({
+      where: { id: orderId },
     });
-}
+
+    if (!order) {
+      throw { message: "Order not found", isExpose: true };
+    }
+
+    if (order.status !== OrderStatus.DELIVERED) {
+      throw {
+        message: "Only delivered order can be confirmed",
+        isExpose: true,
+      };
+    }
+
+    const confirmOrder = await tx.order.update({
+      where: { id: orderId },
+      data: { status: OrderStatus.ORDER_CONFIRMATION },
+    });
+
+    await tx.orderStatusLog.create({
+      data: {
+        orderId: order.id,
+        oldStatus: order.status,
+        newStatus: OrderStatus.ORDER_CONFIRMATION,
+        changedBy: "USER",
+        note: "Order has been delivered",
+      },
+    });
+    return confirmOrder;
+  });
+};
+
+export const getOrderDetailService = async (
+  userId: string,
+  orderId: string
+) => {
+  return await prisma.order.findFirst({
+    where: { id: orderId, userId },
+    include: {
+      OrderItems: {
+        include: {
+          product: {
+            include: {
+              images: {
+                where: { isPrimary: true },
+                take: 1,
+              },
+            },
+          },
+        },
+      },
+      user: {
+        include: { UserAddress: true },
+      },
+    },
+  });
+};
 
 export const getOrdersByUserIdService = async (
   userId: string,
@@ -324,4 +384,3 @@ export const getOrdersByUserIdService = async (
 
   return { orders, total };
 };
-

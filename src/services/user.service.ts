@@ -54,6 +54,15 @@ export const updateMyProfileService = async ({
     throw { message: "User not found", isExpose: true };
   }
 
+  if (phoneNumber && phoneNumber !== getUser.phoneNumber) {
+    const existingPhone = await prisma.user.findUnique({
+      where: { phoneNumber },
+    });
+    if (existingPhone) {
+      throw { message: "Phone number already registered", isExpose: true };
+    }
+  }
+
   let createPhoto: PhotoProfile = { imageUrl: "" };
   if (photoProfile) {
     const uploadPhoto = async () => {
@@ -217,7 +226,6 @@ export const createAddressesService = async ({
       id: userId,
     },
   });
-  console.log(isDefault);
 
   if (user?.status == UserStatus.INACTIVE) {
     throw { message: "User status inactive", isExpose: true };
@@ -234,8 +242,6 @@ export const createAddressesService = async ({
         isDefault: true,
       },
     });
-
-    console.log(getCurrentDefault);
 
     if (getCurrentDefault) {
       await prisma.userAddress.update({

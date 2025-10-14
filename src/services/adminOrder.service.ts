@@ -2,35 +2,69 @@ import { error } from "console";
 import { prisma } from "../db/connection";
 import { Order, OrderStatus, UserRole } from "../generated/prisma";
 
-export const getAllOrdersAdminService = async ({user_id, role, storeId} : {user_id?: string; role: "SUPER_ADMIN" | "ADMIN_STORE", storeId?: string}) => {
-    return await prisma.order.findMany({
-        where: role === "SUPER_ADMIN" ? {} : { storeId },
-        orderBy: {
-            createdAt: "desc"
-        },
-        include: {
-            OrderItems: {
-                include: {
-                    product: true
-                }
-            },
-            user: {
-                select: {
-                    id: true,
-                    fullName:true, 
-                    email:true,
-                    phoneNumber:true,
-                    UserAddress: {
-                        select:{
-                            address: true
-                        }
-                    }
-                }
-            }
-        }
+export const getAllOrdersAdminService = async ({
+  user_id, 
+  role, 
+  storeId,
+  page = 1,
+  limit = 10
+} : {
+  user_id?: string;
+  role: "SUPER_ADMIN" | "ADMIN_STORE",
+  storeId?: string
+  page?: number;
+  limit?: number;
 
-    })
+}) => {
+  const whereClause =
+    role === "SUPER_ADMIN"
+      ? storeId
+        ? { storeId } 
+        : {} 
+      : { storeId };
+
+    const [orders, total] = await Promise.all([
+        prisma.order.findMany({
+          where:whereClause,
+          orderBy: {
+              createdAt: "desc"
+          },
+          include: {
+              OrderItems: {
+                  include: {
+                      product: true
+                  }
+              },
+              user: {
+                  select: {
+                      id: true,
+                      fullName:true, 
+                      email:true,
+                      phoneNumber:true,
+                      UserAddress: {
+                          select:{
+                              address: true
+                          }
+                      }
+                  }
+              }
+          },
+          skip: (page - 1) * limit,
+          take: limit,
+      }),
+       prisma.order.count({ where: whereClause }),
+    ])
+    return {
+    data: orders,
+    meta: {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
 }
+
 
 export const getOrderDetailAdminService = async ({
   orderId,
@@ -67,7 +101,9 @@ export const getOrderDetailAdminService = async ({
               id : true,
               name: true,
               price: true,
-              stocks: true,
+              stocks: {
+                where: {storeId: undefined}
+              },
               images : {
                 where : {isPrimary:true},
                 select : {url: true},
@@ -91,13 +127,34 @@ export const getOrderDetailAdminService = async ({
           id: true,
           name: true
         }
+      },
+      Shipment: {
+        select: {
+          shippingCost: true
+        }
       }
     }
   });
   if (!order) {
      throw { message: "Order not found", isExpose: true };
   }
-  return order
+  const orderWithLocalStock = {
+    ...order,
+    OrderItems: order.OrderItems.map(item => {
+      const localStockRecord = item.product.stocks.find(
+        s => s.storeId === order.store.id 
+      );
+      const localQuantity = localStockRecord?.quantity ?? 0;
+      const needGlobalStockRequest = localQuantity < item.quantity;
+
+      return {
+        ...item,
+        localStock: localQuantity,
+        needGlobalStockRequest
+      };
+    })
+  };
+   return orderWithLocalStock;
 };
 
 export const approvePaymentService = async ({user_id, orderId}:{

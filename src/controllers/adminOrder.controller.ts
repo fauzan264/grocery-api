@@ -5,21 +5,26 @@ import { UserRole } from "../generated/prisma";
 
 
 export const getAllOrdersAdminController = async (req: Request, res: Response) => {
-    
   const { user_id, role, storeId } = res.locals.payload;
-  console.log("DEBUG JWT Payload:");
-  console.log("user_id:", user_id);
-  console.log("role:", role);
-  console.log("storeId:", storeId);
 
   if (role !== UserRole.SUPER_ADMIN && role !== UserRole.ADMIN_STORE) {
     throw { status: 403, message: "Forbidden: You are not authorized to access this resource" };
   }
 
-  const orders = await getAllOrdersAdminService({user_id, role, storeId});
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = parseInt(req.query.limit as string) || 10;
+
+  const { data: orders, meta } = await getAllOrdersAdminService({
+    user_id, 
+    role, 
+    storeId,
+    page,
+    limit
+  });
 
   const mappedOrders = orders.map((order) => ({
     orderId: order.id,
+    storeId : order.storeId,
     status: order.status,
     createdAt: order.createdAt,
     totalPrice: order.totalPrice,
@@ -46,7 +51,8 @@ export const getAllOrdersAdminController = async (req: Request, res: Response) =
   return res.status(200).json({
     message: "All Orders fetched successfully",
     count: mappedOrders.length,
-    data: mappedOrders
+    meta, 
+    data: mappedOrders,
   });
 };
 
@@ -66,6 +72,7 @@ export const getOrderDetailController = async (req: Request, res: Response) => {
   createdAt: order.createdAt,
   totalPrice: order.totalPrice,
   discount: order.discountTotal,
+  shipment : order.Shipment?.shippingCost,  
   finalPrice: order.finalPrice,
   paymentMethod: order.paymentMethod,
   paymentProof: order.paymentProof,
@@ -76,15 +83,22 @@ export const getOrderDetailController = async (req: Request, res: Response) => {
     phoneNumber: order.user.phoneNumber,
     addresses: order.user.UserAddress.map((addr) => addr.address),
   },
-  items: order.OrderItems.map((item) => ({
-    productId: item.product.id,
-    name: item.product.name,
-    price: item.product.price,
-    quantity: item.quantity,
-    stock: item.product.stocks,
-    imageUrl: item.product.images?.[0]?.url || null, 
-    subTotal: item.subTotal,
-  })),
+  items: order.OrderItems.map((item) => {
+      const localStock = item.product.stocks.find(
+        s => s.storeId === order.store.id
+      )?.quantity ?? 0;
+
+      return {
+        productId: item.product.id,
+        name: item.product.name,
+        price: item.product.price,
+        quantity: item.quantity,
+        stock: localStock,
+        needGlobalStockRequest: localStock < item.quantity, 
+        imageUrl: item.product.images?.[0]?.url || null,
+        subTotal: item.subTotal,
+      };
+    }),
   store: order.store
     ? {
         id: order.store.id,

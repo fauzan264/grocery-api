@@ -20,11 +20,27 @@ export const gatewayPaymentService = async (orderId: string) => {
   try {
     const order = await prisma.order.findUnique({
       where: { id: orderId },
-      include: { OrderItems: { include: { product: true } }, user: true },
+      include: { OrderItems: { include: { product: true } }, user: true, Shipment:true },
     });
 
     if (!order) throw new Error("Order not found");
     if (!order.OrderItems.length) throw new Error("Order has no items");
+
+    const itemDetails = order.OrderItems.map((item) => ({
+      id: item.productId,
+      price: Math.round(Number(item.price)),
+      quantity: item.quantity,
+      name: item.product.name,
+    }));
+
+    if (order.Shipment?.shippingCost) {
+      itemDetails.push({
+        id: "shipping",
+        price: Math.round(Number(order.Shipment.shippingCost)),
+        quantity: 1,
+        name: `Shipping - ${order.Shipment.courier || "Courier"}`,
+      });
+    }
 
     const parameter = {
       transaction_details: {
@@ -37,18 +53,16 @@ export const gatewayPaymentService = async (orderId: string) => {
         email: order.user.email,
         phone: order.user.phoneNumber,
       },
-      item_details: order.OrderItems.map((item) => ({
-        id: item.productId,
-        price: Math.round(Number(item.price)),
-        quantity: item.quantity,
-        name: item.product.name,
-      })),
+      item_details: itemDetails,
       gopay: { enable_callback: true },
     };
+
+
 
     console.log("Snap parameter:", parameter);
 
     const transaction = await snap.createTransaction(parameter);
+    console.log(transaction)
     return { redirect_url: transaction.redirect_url };
   } catch (err) {
     console.error("GatewayPaymentService error:", err);

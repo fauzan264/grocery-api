@@ -520,6 +520,7 @@ export const getAllAdminStoreService = async ({
     select: {
       user: {
         select: {
+          id: true,
           fullName: true,
         },
       },

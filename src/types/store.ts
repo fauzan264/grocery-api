@@ -5,8 +5,11 @@ export type LogoStore = { imageUrl: string | undefined };
 export interface IGetAllStoreServiceProps {
   name?: string | undefined;
   province?: string | undefined;
+  provinceId?: number | undefined;
   city?: string | undefined;
+  cityId?: number | undefined;
   district?: string | undefined;
+  districtId?: number | undefined;
   status?: string | undefined;
   page?: number | undefined;
   limit?: number | undefined;

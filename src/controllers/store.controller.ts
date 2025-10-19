@@ -11,11 +11,13 @@ import {
 } from "../services/store.service";
 
 export const getAllStoreController = async (req: Request, res: Response) => {
-  let { name, province, city, district, status, page, limit } = req.query;
+  let { name, province, province_id, city, district, status, page, limit } =
+    req.query;
 
   const stores = await getAllStoreService({
     name: name ? String(name) : undefined,
     province: province ? String(province) : undefined,
+    provinceId: province_id ? Number(province_id) : undefined,
     city: city ? String(city) : undefined,
     district: district ? String(district) : undefined,
     status: status ? String(status) : undefined,

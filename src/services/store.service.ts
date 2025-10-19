@@ -13,8 +13,11 @@ import { cloudinaryUpload } from "../lib/cloudinary.upload";
 export const getAllStoreService = async ({
   name,
   province,
+  provinceId,
   city,
+  cityId,
   district,
+  districtId,
   status,
   page,
   limit,
@@ -38,6 +41,12 @@ export const getAllStoreService = async ({
           mode: "insensitive",
         },
       },
+    };
+  }
+
+  if (provinceId) {
+    where.provinceId = {
+      equals: provinceId,
     };
   }
 

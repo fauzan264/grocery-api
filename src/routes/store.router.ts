@@ -12,6 +12,8 @@ import {
   updateStoreController,
 } from "../controllers/store.controller";
 import { uploaderMulter } from "../middlewares/uploader.multer";
+import { validateYup } from "../middlewares/validateYup";
+import { createAssignStoreAdminSchema } from "../validations/store.validation";
 
 const storeRouter = Router();
 
@@ -51,6 +53,7 @@ storeRouter.post(
   "/:id/assign-user",
   jwtVerify,
   roleVerify(["SUPER_ADMIN"]),
+  validateYup(createAssignStoreAdminSchema),
   createAssignStoreAdminController
 );
 storeRouter.delete(

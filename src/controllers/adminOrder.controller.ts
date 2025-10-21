@@ -2,10 +2,11 @@ import { Request, Response } from "express";
 import { approvePaymentService, cancelOrderAdminService,  declinePaymentService,  getAllOrdersAdminService, getOrderDetailAdminService,getOrderStatusLogsService } from "../services/adminOrder.service";
 
 import { UserRole } from "../generated/prisma";
+import { string } from "yup";
 
 
 export const getAllOrdersAdminController = async (req: Request, res: Response) => {
-  const { user_id, role, storeId } = res.locals.payload;
+  const { user_id, role } = res.locals.payload;
 
   if (role !== UserRole.SUPER_ADMIN && role !== UserRole.ADMIN_STORE) {
     throw { status: 403, message: "Forbidden: You are not authorized to access this resource" };
@@ -13,11 +14,15 @@ export const getAllOrdersAdminController = async (req: Request, res: Response) =
 
   const page = parseInt(req.query.page as string) || 1;
   const limit = parseInt(req.query.limit as string) || 10;
+  const storeId = req.query.storeId as string | undefined;
+
+  
+
 
   const { data: orders, meta } = await getAllOrdersAdminService({
     user_id, 
     role, 
-    storeId,
+    storeId: storeId ? String(storeId) : undefined,
     page,
     limit
   });
@@ -45,7 +50,10 @@ export const getAllOrdersAdminController = async (req: Request, res: Response) =
       price: item.price,
       quantity: item.quantity,
       subTotal: item.subTotal
-    }))
+    })),
+    store : {
+      name : order.store.name
+    }
   }));
 
   return res.status(200).json({

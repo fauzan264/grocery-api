@@ -1,4 +1,4 @@
-import { error } from "console";
+
 import { prisma } from "../db/connection";
 import { Order, OrderStatus, UserRole } from "../generated/prisma";
 
@@ -16,13 +16,27 @@ export const getAllOrdersAdminService = async ({
   limit?: number;
 
 }) => {
-  const whereClause =
-    role === "SUPER_ADMIN"
-      ? storeId
-        ? { storeId } 
-        : {} 
-      : { storeId };
+  let whereClause: Record<string, any> = {};
 
+  if (role === UserRole.SUPER_ADMIN) {
+    if(storeId) {
+      whereClause.storeId = storeId
+    }
+  } else if (role === UserRole.ADMIN_STORE) {
+    if (!user_id) {
+       throw { message: "User Id is required", isExpose: true };
+    }
+
+    const userStore = await prisma.userStore.findFirst({
+      where: { userId: user_id },
+      select: { storeId: true },
+    });
+
+    if (!userStore) {
+      throw { message: "Admin store not linked to any store", isExpose: true };
+    }
+    whereClause.storeId = userStore.storeId;
+  }
     const [orders, total] = await Promise.all([
         prisma.order.findMany({
           where:whereClause,
@@ -30,10 +44,11 @@ export const getAllOrdersAdminService = async ({
               createdAt: "desc"
           },
           include: {
-              OrderItems: {
-                  include: {
+            store: { select: { id: true, name: true } },
+            OrderItems: {
+                include: {
                       product: true
-                  }
+                }
               },
               user: {
                   select: {

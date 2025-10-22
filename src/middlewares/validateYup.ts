@@ -9,9 +9,21 @@ export const validateYup = (
     try {
       const dataToValidate = {
         ...req[source],
-        ...(req.file && { file: req.file }),
-        ...(req.files && { files: req.files }),
+        ...(req.file && { [req.file.fieldname]: req.file }),
       };
+
+      if (req.files) {
+        if (Array.isArray(req.files)) {
+          const fieldname = req.files[0]?.fieldname;
+          if (fieldname) {
+            dataToValidate[fieldname] = req.files;
+          }
+        } else {
+          Object.keys(req.files).forEach((fieldname) => {
+            dataToValidate[fieldname] = (req.files as any)[fieldname];
+          });
+        }
+      }
 
       const validated = await schema.validate(dataToValidate, {
         abortEarly: false,

@@ -23,6 +23,11 @@ import {
   updateUserAdminSchema,
 } from "../validations/user.admin.validation";
 import { uploaderMulter } from "../middlewares/uploader.multer";
+import {
+  createAddressesSchema,
+  updateAddressesSchema,
+  updateMyProfileSchema,
+} from "../validations/user.validation";
 
 const userRouter = Router();
 
@@ -31,6 +36,7 @@ userRouter.put(
   "/me",
   jwtVerify,
   uploaderMulter(["image"], "memoryStorage").single("photo_profile"),
+  validateYup(updateMyProfileSchema),
   updateMyProfileController
 );
 userRouter.get("/:userId/addresses", jwtVerify, getMyAddressesController);
@@ -83,10 +89,16 @@ userRouter.delete(
   roleVerify(["SUPER_ADMIN"]),
   deleteUserAdminController
 );
-userRouter.post("/:user_id/addresses", jwtVerify, createAddressesController);
+userRouter.post(
+  "/:user_id/addresses",
+  jwtVerify,
+  validateYup(createAddressesSchema),
+  createAddressesController
+);
 userRouter.put(
   "/:userId/addresses/:addressId",
   jwtVerify,
+  validateYup(updateAddressesSchema),
   updateAddressesController
 );
 userRouter.delete(

@@ -13,7 +13,11 @@ import {
 } from "../controllers/store.controller";
 import { uploaderMulter } from "../middlewares/uploader.multer";
 import { validateYup } from "../middlewares/validateYup";
-import { createAssignStoreAdminSchema } from "../validations/store.validation";
+import {
+  createAssignStoreAdminSchema,
+  createStoreSchema,
+  updateStoreSchema,
+} from "../validations/store.validation";
 
 const storeRouter = Router();
 
@@ -34,6 +38,7 @@ storeRouter.post(
   jwtVerify,
   roleVerify(["SUPER_ADMIN"]),
   uploaderMulter(["image"], "memoryStorage").single("logo"),
+  validateYup(createStoreSchema),
   createStoreController
 );
 storeRouter.delete(
@@ -47,6 +52,7 @@ storeRouter.put(
   jwtVerify,
   roleVerify(["SUPER_ADMIN"]),
   uploaderMulter(["image"], "memoryStorage").single("logo"),
+  validateYup(updateStoreSchema),
   updateStoreController
 );
 storeRouter.post(

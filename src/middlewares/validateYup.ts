@@ -1,23 +1,39 @@
 import { Request, Response, NextFunction } from "express";
-import { AnySchema } from "yup";
+import { AnySchema, ValidationError } from "yup";
 
-export const validateYup = (schema: AnySchema) => {
+export const validateYup = (
+  schema: AnySchema,
+  source: "body" | "params" | "query" = "body"
+) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const validated = await schema.validate(
-        {
-          body: req.body,
-          params: req.params,
-          query: req.query,
-        },
-        { abortEarly: false, stripUnknown: true }
-      );
+      const dataToValidate = {
+        ...req[source],
+        ...(req.file && { file: req.file }),
+        ...(req.files && { files: req.files }),
+      };
 
-      if (validated && (validated as any).body) {
-        req.body = (validated as any).body;
-      }
+      const validated = await schema.validate(dataToValidate, {
+        abortEarly: false,
+        stripUnknown: true,
+      });
+
+      req[source] = validated;
       return next();
     } catch (err: any) {
+      if (err instanceof ValidationError) {
+        const errorArray = err.inner.map((error: any) => ({
+          field: error.path,
+          message: error.message,
+        }));
+
+        return res.status(400).json({
+          success: false,
+          message: "Validation error",
+          error: errorArray,
+        });
+      }
+
       return res.status(400).json({
         success: false,
         message: "Validation error",

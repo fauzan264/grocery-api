@@ -117,12 +117,13 @@ export const createUserAdminController = async (
 /* List users (SUPER_ADMIN) */
 export const listUsersAdminController = async (req: Request, res: Response) => {
   try {
-    const { role, page = "1", limit = "20", q } = req.query;
+    const { role, page = "1", limit = "20", q, is_available } = req.query;
     const result = await listUsersAdminService({
       role: role as string | undefined,
       page: Number(page),
       limit: Number(limit),
       q: q as string | undefined,
+      isAvailable: Boolean(is_available),
     });
     return res
       .status(200)

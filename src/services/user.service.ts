@@ -1,6 +1,6 @@
 import snakecaseKeys from "snakecase-keys";
 import { prisma } from "../db/connection";
-import { User, UserStatus } from "../generated/prisma";
+import { User, UserRole, UserStatus } from "../generated/prisma";
 import {
   ICreateAddressesServiceProps,
   IDeleteAddressesServiceProps,
@@ -195,12 +195,32 @@ export const getMyStoreService = async ({ id }: Pick<User, "id">) => {
     where: {
       userId: id,
     },
-    include: {
-      store: true,
-    },
-    omit: {
-      userId: true,
-      storeId: true,
+    select: {
+      store: {
+        select: {
+          name: true,
+          logo: true,
+          address: true,
+          province: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          city: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          district: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      },
     },
   });
 
@@ -208,7 +228,7 @@ export const getMyStoreService = async ({ id }: Pick<User, "id">) => {
     throw { message: "Store not found", isExpose: true };
   }
 
-  return store;
+  return snakecaseKeys(store);
 };
 
 export const createAddressesService = async ({
@@ -456,6 +476,7 @@ type ListOpts = {
   page?: number;
   limit?: number;
   q?: string;
+  isAvailable?: boolean;
 };
 /* create user (SUPER_ADMIN) */
 export const createUserAdminService = async (payload: CreateUserArgs) => {
@@ -523,6 +544,7 @@ export const listUsersAdminService = async ({
   page = 1,
   limit = 20,
   q,
+  isAvailable = false,
 }: ListOpts) => {
   const skip = (page - 1) * limit;
   const where: any = { deletedAt: null };
@@ -536,7 +558,7 @@ export const listUsersAdminService = async ({
   }
 
   try {
-    const [total, items] = await Promise.all([
+    let [total, items] = await Promise.all([
       prisma.user.count({ where }),
       prisma.user.findMany({
         where,
@@ -555,6 +577,28 @@ export const listUsersAdminService = async ({
         },
       }),
     ]);
+
+    if (role == "ADMIN_STORE" && isAvailable) {
+      const existingAdmin = await prisma.userStore.findMany({
+        select: {
+          user: {
+            select: {
+              id: true,
+              fullName: true,
+            },
+          },
+        },
+      });
+
+      const assignedAdminIds = existingAdmin.map((admin) => admin.user.id);
+
+      // Filter admin yang belum di-assign (available)
+      items = items.filter((item) => {
+        return !assignedAdminIds.includes(item.id);
+      });
+
+      total = items.length;
+    }
 
     return {
       meta: { total, page, limit, pages: Math.ceil(total / limit) },

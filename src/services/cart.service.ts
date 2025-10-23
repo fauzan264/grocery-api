@@ -18,7 +18,7 @@ export const AddtoCartService = async({
         })
     }
 
-    //Checing Existing Item
+    
     const existingProduct = await prisma.shoppingCartItem.findFirst({
         where : {cartId:cart.id, productId}
     })
@@ -33,13 +33,11 @@ export const AddtoCartService = async({
         })
     }
 
-    //Retrieve price from product db
     const product = await prisma.product.findFirstOrThrow({
         where: {id : productId},
         select: { price: true, name:true}
     });
 
-    //add Product to cart
     return prisma.shoppingCartItem.create({
         data:{
             cartId: cart.id,
@@ -54,7 +52,6 @@ export const AddtoCartService = async({
             }
         }
     })
-
 }
 
 export const updateCartItemService = async ({

@@ -15,7 +15,7 @@ export const createOrderSchema = yup.object({
   paymentMethod: yup
     .string()
     .oneOf(["BANK_TRANSFER","SNAP"] , "Invalid payment method")
-    .required("paymentMethod is required"),
+    .required("Payment Method is required"),
 
   shipment: yup
     .object({

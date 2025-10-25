@@ -1,6 +1,6 @@
 import { prisma } from "../db/connection";
 import { paginateResponse } from "../utils/pagination";
-import { Prisma } from "../generated/prisma";
+import { Prisma, StockRequestStatus } from "../generated/prisma";
 
 const MAX_RETRY = 3;
 
@@ -52,7 +52,6 @@ export async function updateStockQuantity(stockId: string, delta: number, create
       });
 
       if (updatedCount.count === 0) {
-        // concurrent modification, ask outer loop to retry
         return null;
       }
 
@@ -225,6 +224,105 @@ export async function transferStockBetweenStores(productId: string, fromStoreId:
   });
 }
 
+export async function createStockRequestService(
+  productId: string,
+  storeId: string,
+  quantity: number,
+  requestedById: string,
+  orderId?: string
+) {
+  if (quantity <= 0) throw new Error("Quantity must be positive");
+
+
+  const existingPending = await prisma.stockRequest.findFirst({
+    where: {
+      productId,
+      storeId,
+      status: "PENDING",
+    },
+  });
+
+  if (existingPending) {
+    throw { message: "There’s already a pending stock request for this product.", isExpose: true };
+  }
+
+  const stockRequest = await prisma.stockRequest.create({
+    data: {
+      productId,
+      storeId,
+      quantityRequested: quantity,
+      requestedById,
+      orderId,
+      status: "PENDING",
+    },
+    include: {
+      requestedBy: {
+        select: { fullName: true },
+      },
+    },
+  });
+
+  return stockRequest;
+}
+
+export async function approveStockRequestService(
+  requestId: string,
+  approvedById: string
+) {
+  return await prisma.$transaction(async (tx) => {
+    const request = await tx.stockRequest.findUnique({
+      where: { id: requestId },
+      include: { store: true, product: true },
+    });
+
+    if (!request) throw new Error("Stock request not found");
+    if (request.status !== "PENDING") throw new Error("Request already processed");
+
+  
+    const donor = await tx.stock.findFirst({
+      where: {
+        productId: request.productId,
+        storeId: { not: request.storeId },
+        quantity: { gte: request.quantityRequested },
+      },
+      orderBy: { quantity: "desc" }, 
+    });
+
+    if (!donor) {
+      throw new Error("No store has sufficient stock to fulfill this request");
+    }
+
+
+    await transferStockBetweenStores(
+      request.productId,
+      donor.storeId,
+      request.storeId,
+      request.quantityRequested,
+      approvedById
+    );
+
+   
+    const updatedRequest = await tx.stockRequest.update({
+      where: { id: request.id },
+      data: {
+        status: "APPROVED",
+        completedAt: new Date(),
+      },
+      include: {
+        requestedBy: { select: { fullName: true } },
+        store: { select: { name: true } },
+        product: { select: { name: true } },
+      },
+    });
+
+    return updatedRequest;
+  });
+}
+
+
+
+
+
 export async function getStockById(stockId: string) {
   return prisma.stock.findUnique({
     where: { id: stockId },
@@ -298,7 +396,7 @@ export const getProductStocks = async (
   ]);
 
   const mapped = items.map((it) => ({
-    stockId: it.id,            // <-- tambahkan id di sini
+    stockId: it.id,            
     storeId: it.storeId,
     storeName: it.store?.name ?? null,
     quantity: it.quantity,
@@ -307,3 +405,13 @@ export const getProductStocks = async (
 
   return paginateResponse(mapped, total, p, l);
 };
+
+
+
+export async function getGlobalStock(productId: string) {
+  const result = await prisma.stock.aggregate({
+    where: { productId },
+    _sum: { quantity: true },
+  });
+  return result._sum.quantity ?? 0;
+}

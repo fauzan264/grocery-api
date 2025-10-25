@@ -29,6 +29,7 @@ model User {
   UserAddress  UserAddress[]
   UserStore    UserStore[]
   categoryLogs CategoryLog[]
+  stockRequests  StockRequest[]
   DiscountRedemption DiscountRedemption[]
 
   @@map("users")
@@ -78,9 +79,12 @@ model Store {
   updatedAt     DateTime    @updatedAt @map("updated_at")
   deletedAt     DateTime?   @map("deleted_at")
   status        StoreStatus
+
   stocks        Stock[]
   UserStore     UserStore[]
   Order         Order[]
+  stockRequests  StockRequest[] 
+
   province      Province    @relation(fields: [provinceId], references: [id])
   city          City        @relation(fields: [cityId], references: [id])
   district      District    @relation(fields: [districtId], references: [id])
@@ -117,6 +121,7 @@ model Order {
 
   OrderItems OrderItems[]
   StatusLogs OrderStatusLog[]
+  stockRequests  StockRequest[]
 
   user          User      @relation(fields: [userId], references: [id])
   store        Store       @relation(fields: [storeId], references: [id])
@@ -257,6 +262,7 @@ model Product {
   ShoppingCartItem ShoppingCartItem[]
   stocks           Stock[]
   discount         Discount[]
+  stockRequests  StockRequest[]
 
   @@map("products")
 }
@@ -384,6 +390,25 @@ usedAt DateTime @default(now())
 @@map("discount_redemptions")
 }
 
+model StockRequest {
+  id                 String   @id @default(uuid())
+  orderId            String?
+  productId          String
+  storeId            String
+  quantityRequested  Int
+  status             StockRequestStatus @default(PENDING)
+  requestedAt        DateTime @default(now())
+  completedAt        DateTime?
+
+  requestedById      String
+  requestedBy        User     @relation(fields: [requestedById], references: [id])
+
+  order   Order?   @relation(fields: [orderId], references: [id])
+  product Product  @relation(fields: [productId], references: [id])
+  store   Store    @relation(fields: [storeId], references: [id])
+}
+
+
 enum UserStatus {
   ACTIVE
   INACTIVE
@@ -435,6 +460,13 @@ enum StockJournalType {
   OTHER
 
   @@map("stock_journal_type")
+}
+
+enum StockRequestStatus {
+  PENDING
+  APPROVED
+  COMPLETED
+  REJECTED
 }
 
 /// *

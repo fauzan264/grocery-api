@@ -4,6 +4,7 @@ import { IOrderResult } from "../types/order";
 import { IShipment } from "../types/shipment";
 import { validateAndCalculateDiscounts } from "./discount.service";
 import { gatewayPaymentService } from "./payment.service";
+import { getGlobalStock } from "./stock.service";
 
 const EXPIRE_DURATION = 60 * 60 * 1000;
 
@@ -34,10 +35,7 @@ export const createOrderService = async (
     for (const item of cart.ShoppingCartItem) {
       const localStock = item.product.stocks.find((s) => s.storeId === storeId);
       const localQty = localStock ? localStock.quantity : 0;
-      const globalQty = item.product.stocks.reduce(
-        (acc, stock) => acc + stock.quantity,
-        0
-      );
+      const globalQty = await getGlobalStock(item.productId);
 
       if (item.quantity > localQty && item.quantity > globalQty) {
         throw {
@@ -142,13 +140,14 @@ export const createOrderService = async (
       const newQty = stockRecord.quantity - item.quantity;
       if (newQty < 0)
         throw {
-          message: `Stock is not enough for product: ${item.product.name}`,
+          message: `Stock is not enough for product: ${item.product.name} in this store`,
         };
 
       await tx.stock.update({
         where: { id: stockRecord.id },
         data: { quantity: newQty },
       });
+
       await tx.stockHistory.create({
         data: {
           stockId: stockRecord.id,

@@ -6,9 +6,12 @@ import {
   listStockByStoreHandler,
   transferStockHandler,
   getStocksByProductHandler,
+  createStockRequestController,
 } from "../controllers/stock.controller";
 import { authMiddleware } from "../middlewares/auth.middleware";
 import { authorizeRoles } from "../middlewares/authorizeRoles.middleware";
+import { jwtVerify } from "../middlewares/jwt.verify";
+import { roleVerify } from "../middlewares/role.verify";
 
 const stockRouter = Router();
 
@@ -28,6 +31,13 @@ stockRouter.post(
   authorizeRoles("SUPER_ADMIN", "ADMIN_STORE"),
   createStockHandler
 );
+
+stockRouter.post(
+  "/request",
+  jwtVerify,
+  roleVerify(["SUPER_ADMIN", "ADMIN_STORE"]),
+  createStockRequestController
+)
 
 // List by store
 // -> GET /api/stocks/stores/:storeId?page=1&limit=20

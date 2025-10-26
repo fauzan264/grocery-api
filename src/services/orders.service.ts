@@ -134,16 +134,22 @@ export const createOrderService = async (
       const stockRecord = await tx.stock.findFirst({
         where: { productId: item.productId, storeId },
       });
-      if (!stockRecord)
-        throw { message: `No stock found for product: ${item.product.name}` };
 
-      const newQty = stockRecord.quantity - item.quantity;
-      if (newQty < 0)
-        throw {
-          message: `Stock is not enough for product: ${item.product.name} in this store`,
-        };
+      if(!stockRecord){
+        throw {message: `No Stock for Poduct : ${item.product.name}`}
+      }
 
-      await tx.stock.update({
+      const localQty = stockRecord?.quantity ?? 0;
+      const globalQty = await getGlobalStock(item.productId);
+
+      if (item.quantity > globalQty) {
+        throw { message: `Global stock not enough for ${item.product.name}` }
+      }
+
+      if (stockRecord){
+        const newQty = Math.max(localQty - item.quantity, 0);
+
+        await tx.stock.update({
         where: { id: stockRecord.id },
         data: { quantity: newQty },
       });
@@ -156,10 +162,19 @@ export const createOrderService = async (
           quantityNew: newQty,
           changeType: "DECREASE",
           journalType: "PURCHASE",
-          note: `Order #${order.id} untuk produk ${item.product.name}`,
+          note: 
+          localQty >= item.quantity
+            ? `Order #${order.id} for product ${item.product.name}`
+            : `Local stock shortage (${localQty}/${item.quantity}) — please review for replenishment.`,
           createdBy: "USER",
         },
       });
+    } else {
+      
+    }
+        
+
+      
     }
 
     await tx.shoppingCartItem.deleteMany({ where: { cartId: cart.id } });

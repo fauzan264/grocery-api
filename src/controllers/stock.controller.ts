@@ -8,6 +8,7 @@ import {
   getStockById,
   listStockByStore,
   getProductStocks,
+  createStockRequestService,
 } from "../services/stock.service";
 
 export async function createStockHandler(req: AuthRequest, res: Response) {
@@ -83,6 +84,57 @@ export async function transferStockHandler(req: AuthRequest, res: Response) {
     return res.status(400).json({ success: false, message });
   }
 }
+
+
+export const createStockRequestController = async (req: Request, res: Response) => {
+  const requestedById = res.locals.payload?.user_id;
+  const {  productId, storeId,quantity, orderId } = req.body;
+
+  if (!requestedById) {
+    throw { status: 401, message: "Unauthorized: User not logged in" };
+  }
+
+  if (!productId || !storeId || !quantity) {
+    throw { status: 400, message: "productId, storeId, and quantity are required" };
+  }
+  console.log("Request body:", req.body);
+
+
+  const stockRequest = await createStockRequestService(
+    productId,
+    storeId,
+    quantity,
+    requestedById,
+    orderId
+  );
+
+  // Format response seperti getAllOrdersAdminController
+  const formattedResponse = {
+    requestId: stockRequest.id,
+    product: {
+      id: stockRequest.productId,
+      name: stockRequest.product.name,
+    },
+    store: {
+      id: stockRequest.storeId,
+      name: stockRequest.store.name,
+    },
+    quantityRequested: stockRequest.quantityRequested,
+    status: stockRequest.status,
+    requestedBy: {
+      id: requestedById,
+      fullName: stockRequest.requestedBy.fullName,
+    },
+    orderId: stockRequest.orderId,
+    requestedAt: stockRequest.requestedAt,
+    completedAt: stockRequest.completedAt,
+  };
+
+  return res.status(201).json({
+    message: "Stock request created successfully",
+    data: formattedResponse,
+  });
+};
 
 export async function getStockHandler(req: AuthRequest, res: Response) {
   try {

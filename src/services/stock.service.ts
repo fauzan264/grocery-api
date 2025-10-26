@@ -246,19 +246,22 @@ export async function createStockRequestService(
     throw { message: "There’s already a pending stock request for this product.", isExpose: true };
   }
 
+
   const stockRequest = await prisma.stockRequest.create({
     data: {
       productId,
       storeId,
       quantityRequested: quantity,
-      requestedById,
       orderId,
+      requestedById,
       status: "PENDING",
     },
     include: {
       requestedBy: {
         select: { fullName: true },
       },
+      store: { select: { name: true } },
+      product: { select: { name: true } }
     },
   });
 

@@ -91,22 +91,18 @@ export const getOrderDetailController = async (req: Request, res: Response) => {
     phoneNumber: order.user.phoneNumber,
     addresses: order.user.UserAddress.map((addr) => addr.address),
   },
-  items: order.OrderItems.map((item) => {
-      const localStock = item.product.stocks.find(
-        s => s.storeId === order.store.id
-      )?.quantity ?? 0;
+  items: order.OrderItems.map(item => ({
+  productId: item.product.id,
+  name: item.product.name,
+  price: item.product.price,
+  quantity: item.quantity,
+  stock: item.localStock,
+  needGlobalStockRequest: item.needGlobalStockRequest,
+  hasPendingStockRequest: item.hasPendingStockRequest,
+  imageUrl: item.product.images?.[0]?.url || null,
+  subTotal: item.subTotal,
+})),
 
-      return {
-        productId: item.product.id,
-        name: item.product.name,
-        price: item.product.price,
-        quantity: item.quantity,
-        stock: localStock,
-        needGlobalStockRequest: localStock < item.quantity, 
-        imageUrl: item.product.images?.[0]?.url || null,
-        subTotal: item.subTotal,
-      };
-    }),
   store: order.store
     ? {
         id: order.store.id,

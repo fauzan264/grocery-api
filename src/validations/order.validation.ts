@@ -32,9 +32,8 @@ export const createOrderSchema = yup.object({
         .min(0, "shipping_cost must be a positive number")
         .required("shipping_cost is required"),
       shipping_days: yup
-        .number()
-        .integer("shipping_days must be an integer")
-        .min(0, "shipping_days cannot be negative")
+        .string() 
+        .trim()
         .notRequired(),
     })
     .required("shipment is required"),

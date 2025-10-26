@@ -116,9 +116,7 @@ export const getOrderDetailAdminService = async ({
               id : true,
               name: true,
               price: true,
-              stocks: {
-                where: {storeId: undefined}
-              },
+              stocks: true,
               images : {
                 where : {isPrimary:true},
                 select : {url: true},
@@ -153,21 +151,48 @@ export const getOrderDetailAdminService = async ({
   if (!order) {
      throw { message: "Order not found", isExpose: true };
   }
+
+    const stockRequests = await prisma.stockRequest.findMany({
+    where: {
+      orderId,
+      status: "PENDING",
+    },
+    select: {
+      productId: true,
+    },
+  });
+
+  const pendingProductIds = new Set(stockRequests.map((r) => r.productId));
+
   const orderWithLocalStock = {
     ...order,
-    OrderItems: order.OrderItems.map(item => {
+    OrderItems: await Promise.all(
+      order.OrderItems.map(async item => {
       const localStockRecord = item.product.stocks.find(
         s => s.storeId === order.store.id 
       );
-      const localQuantity = localStockRecord?.quantity ?? 0;
+
+      let localQuantity = 0;
+      if (localStockRecord) {
+        const lastHistory = await prisma.stockHistory.findFirst({
+          where: { stockId: localStockRecord.id },
+          orderBy: { createdAt: "desc" },
+        });
+
+        localQuantity = lastHistory?.quantityOld ?? localStockRecord.quantity;
+      }
       const needGlobalStockRequest = localQuantity < item.quantity;
+      const hasPendingStockRequest = pendingProductIds.has(item.product.id);
 
       return {
         ...item,
         localStock: localQuantity,
-        needGlobalStockRequest
+        needGlobalStockRequest,
+        hasPendingStockRequest
       };
     })
+    )
+    
   };
    return orderWithLocalStock;
 };

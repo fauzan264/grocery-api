@@ -45,7 +45,7 @@ export const updateMyProfileController = async (
   });
 
   res.status(200).json({
-    status: true,
+    success: true,
     message: "My Profile updated successfully",
     data: user,
   });
@@ -53,11 +53,16 @@ export const updateMyProfileController = async (
 
 export const getMyAddressesController = async (req: Request, res: Response) => {
   const { user_id } = res.locals.payload;
+  const { province_id, search } = req.query;
 
-  const addresses = await getMyAddressesService({ id: user_id });
+  const addresses = await getMyAddressesService({
+    id: user_id,
+    search: search ? String(search) : undefined,
+    provinceId: province_id ? Number(province_id) : undefined,
+  });
 
   res.status(200).json({
-    status: true,
+    success: true,
     message: "Successfully fetched your list of address.",
     data: addresses,
   });
@@ -72,7 +77,7 @@ export const getMyAddressesByIDController = async (
   const address = await getMyAddressesByIDService({ userId, addressId });
 
   res.status(200).json({
-    status: true,
+    success: true,
     message: "Successfully fetched your detail address.",
     data: address,
   });
@@ -84,7 +89,7 @@ export const getMyStoreController = async (req: Request, res: Response) => {
   const store = await getMyStoreService({ id: user_id });
 
   res.status(200).json({
-    status: true,
+    success: true,
     message: "Successfully fetched your store.",
     data: store,
   });
@@ -228,7 +233,7 @@ export const createAddressesController = async (
   });
 
   res.status(201).json({
-    status: true,
+    success: true,
     message: "Address created successfully.",
     data: userAddress,
   });
@@ -262,7 +267,7 @@ export const updateAddressesController = async (
   });
 
   res.status(200).json({
-    status: true,
+    success: true,
     message: "Address updated successfully.",
     data: userAddress,
   });
@@ -277,7 +282,7 @@ export const deleteAddressesController = async (
   await deleteAddressesService({ userId, addressId });
 
   res.status(200).json({
-    status: true,
+    success: true,
     message: "Address deleted successfully.",
   });
 };

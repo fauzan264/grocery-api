@@ -96,12 +96,50 @@ export const updateMyProfileService = async ({
   return snakecaseKeys(user);
 };
 
-export const getMyAddressesService = async ({ id }: Pick<User, "id">) => {
+export const getMyAddressesService = async ({
+  id,
+  provinceId,
+  search,
+  page,
+  limit,
+}: Pick<User, "id"> & {
+  provinceId?: number | undefined;
+  search: string | undefined;
+  page?: number | undefined;
+  limit?: number | undefined;
+}) => {
+  const where: any = {
+    userId: id,
+    deletedAt: null,
+  };
+
+  if (provinceId) {
+    where.provinceId = {
+      equals: provinceId,
+    };
+  }
+
+  if (search) {
+    where.address = {
+      contains: search,
+      mode: "insensitive",
+    };
+  }
+
+  const pageNumber = Math.max(Number(page) || 1, 1);
+  const limitNumber = Math.max(Number(limit) || 10, 1);
+  const offset = (pageNumber - 1) * limitNumber;
+
+  const totalData = await prisma.userAddress.count({
+    where: Object.keys(where).length > 0 ? where : undefined,
+  });
+
+  const totalPages = Math.ceil(totalData / limitNumber);
+
   const addresses = await prisma.userAddress.findMany({
-    where: {
-      userId: id,
-      deletedAt: null,
-    },
+    where: Object.keys(where).length > 0 ? where : {},
+    skip: offset,
+    take: limitNumber,
     select: {
       id: true,
       address: true,
@@ -129,7 +167,7 @@ export const getMyAddressesService = async ({ id }: Pick<User, "id">) => {
     },
   });
 
-  const responseFormatter = addresses.map((address: any) => {
+  const addressesFormatter = addresses.map((address: any) => {
     return snakecaseKeys({
       ...address,
       latitude: Number(address.latitude),
@@ -137,7 +175,17 @@ export const getMyAddressesService = async ({ id }: Pick<User, "id">) => {
     });
   });
 
-  return responseFormatter;
+  const response = {
+    addresses: addressesFormatter,
+    pagination: {
+      current_page: pageNumber,
+      per_page: limitNumber,
+      total_data: totalData,
+      total_page: totalPages,
+    },
+  };
+
+  return response;
 };
 
 export const getMyAddressesByIDService = async ({

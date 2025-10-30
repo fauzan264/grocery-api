@@ -11,6 +11,11 @@ export const createOrderController = async (req: Request, res: Response) => {
   const { user_id } = res.locals.payload;
   const { storeId, couponCodes, paymentMethod, shipment } = req.body;
 
+  console.log("Full req.body:", req.body);
+console.log("Shipment type:", typeof shipment);
+console.log("Shipment keys:", Object.keys(shipment));
+
+
   const orderResult = await createOrderService(
     user_id,
     storeId,
@@ -25,7 +30,7 @@ export const createOrderController = async (req: Request, res: Response) => {
     });
   }
 
-  const { order, userAddress, user } = orderResult;
+  const { order, userAddress, user, shipment: orderShipment } = orderResult;
 
   const result = {
     id: order.id,
@@ -37,6 +42,7 @@ export const createOrderController = async (req: Request, res: Response) => {
     paymentMethod: order.paymentMethod,
     createdAt: order.createdAt,
     expireAt: order.expiredAt,
+    shipment: orderShipment,
     user: {
       receiverName: user.fullName,
       receiverNumber: user.phoneNumber,
@@ -122,6 +128,16 @@ export const getOrderDetailController = async (req: Request, res: Response) => {
       receiverName: order?.user.fullName,
       receiverPhone: order?.user.phoneNumber,
       receiverAdress: order?.user.UserAddress,
+    },
+     shipment: {
+      courier: order?.Shipment?.courier,
+      service: order?.Shipment?.service,
+      shippingCost: order?.Shipment?.shippingCost,
+      shippingDays: order?.Shipment?.shippingDays,
+      address: order?.Shipment?.address,
+      provinceName: order?.Shipment?.provinceName,
+      cityName: order?.Shipment?.cityName,
+      districtName: order?.Shipment?.districtName,
     },
     totalItems: order?.OrderItems.reduce((acc, item) => acc + item.quantity, 0),
   };

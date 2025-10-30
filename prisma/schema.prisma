@@ -171,6 +171,12 @@ model Shipment {
   service        String    @db.VarChar(100)
   shippingCost   Decimal   @map("shipping_cost") @db.Decimal(10,2)
   shippingDays   String    @map("shipping_days") @db.VarChar(30)
+
+  address        String   @db.VarChar(255)
+  districtName   String   @map("district_name") @db.VarChar(100)
+  cityName       String  @map("city_name") @db.VarChar(100)
+  provinceName   String  @map("province_name") @db.VarChar(100)
+
   createdAt      DateTime  @default(now()) @map("created_at")
   order          Order     @relation(fields: [orderId], references: [id])
 

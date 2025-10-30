@@ -35,6 +35,10 @@ export const createOrderSchema = yup.object({
         .string() 
         .trim()
         .notRequired(),
+      address: yup.string().trim().required("address is required"),
+      province_name: yup.string().trim().required("province_name is required"),
+      city_name: yup.string().trim().required("city_name is required"),
+      district_name: yup.string().trim().required("district_name is required"),
     })
     .required("shipment is required"),
 });

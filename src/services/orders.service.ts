@@ -124,6 +124,10 @@ export const createOrderService = async (
         service: shipment.service,
         shippingCost: shipment.shipping_cost,
         shippingDays: shipment.shipping_days,
+        address: shipment.address,
+        provinceName: shipment.province_name,
+        cityName: shipment.city_name,
+        districtName: shipment.district_name,
       },
     });
 
@@ -208,6 +212,7 @@ export const createOrderService = async (
 
     return {
       order,
+      shipment :orderShipment,
       userAddress,
       user: { fullName: user.fullName, phoneNumber: user.phoneNumber },
     };
@@ -217,7 +222,7 @@ export const createOrderService = async (
     const gatewayTransaction = await gatewayPaymentService(
       orderResult.order.id
     );
-    return { ...orderResult, gatewayTransaction };
+    return { ...orderResult, gatewayTransaction, shipment: orderResult.shipment };
   }
 
   return orderResult;
@@ -347,6 +352,7 @@ export const getOrderDetailService = async (
       user: {
         include: { UserAddress: true },
       },
+      Shipment : true
     },
   });
 };

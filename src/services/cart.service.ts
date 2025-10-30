@@ -153,7 +153,7 @@ export const getCartItemsService = async (userId: string) => {
     include: {
       ShoppingCartItem: {
         include: {
-          product: { select: { name: true, price: true, weight_g:true, 
+          product: { select: { name: true, price: true, weight_g:true, stocks:true,
             images: { select: { url: true, isPrimary: true } }, 
           } },
         },

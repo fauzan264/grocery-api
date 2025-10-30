@@ -387,3 +387,7 @@ export const getOrderStatusLogsService = async (userId:string, orderId: string) 
     },
   });
 };
+
+export const sendOrderService = async () => {
+  
+}

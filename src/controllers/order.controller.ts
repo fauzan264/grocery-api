@@ -152,8 +152,11 @@ export const getOrdersByUserController = async (
   req: Request,
   res: Response
 ) => {
-  const { userId } = res.locals.payload;
+  const { user_id } = res.locals.payload;
   const { orderId, startDate, endDate, page = "1", limit = "10" } = req.query;
+
+  const userId = user_id;
+  
 
   const { orders, total } = await getOrdersByUserIdService(
     userId,

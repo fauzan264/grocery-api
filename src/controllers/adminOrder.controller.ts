@@ -79,8 +79,7 @@ export const getOrderDetailController = async (req: Request, res: Response) => {
   status: order.status,
   createdAt: order.createdAt,
   totalPrice: order.totalPrice,
-  discount: order.discountTotal,
-  shipment : order.Shipment?.shippingCost,  
+  discount: order.discountTotal, 
   finalPrice: order.finalPrice,
   paymentMethod: order.paymentMethod,
   paymentProof: order.paymentProof,
@@ -102,6 +101,10 @@ export const getOrderDetailController = async (req: Request, res: Response) => {
   imageUrl: item.product.images?.[0]?.url || null,
   subTotal: item.subTotal,
 })),
+  shipment : {
+    shipping_cost : order.Shipment?.shippingCost,
+    address : order.Shipment?.address
+  },
 
   store: order.store
     ? {

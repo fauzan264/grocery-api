@@ -143,7 +143,8 @@ export const getOrderDetailAdminService = async ({
       },
       Shipment: {
         select: {
-          shippingCost: true
+          shippingCost: true,
+          address : true
         }
       }
     }

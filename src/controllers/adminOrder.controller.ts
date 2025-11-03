@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { approvePaymentService, cancelOrderAdminService,  declinePaymentService,  getAllOrdersAdminService, getOrderDetailAdminService,getOrderStatusLogsService } from "../services/adminOrder.service";
+import { approvePaymentService, cancelOrderAdminService,  declinePaymentService,  getAllOrdersAdminService, getOrderDetailAdminService,getOrderStatusLogsService, sendOrderService } from "../services/adminOrder.service";
 
 import { UserRole } from "../generated/prisma";
 import { string } from "yup";
@@ -168,10 +168,6 @@ export const cancelOrderAdminController = async (req: Request, res: Response) =>
   const {user_id, storeId} = res.locals.payload
   const {orderId} = req.params
 
-  console.log("Full Payload:", res.locals.payload);
-  console.log("=== Controller Debug ===");
-  console.log("Parameters:", { user_id, storeId, orderId });
-
   const order = await cancelOrderAdminService(
       user_id,
       orderId,
@@ -193,6 +189,36 @@ export const cancelOrderAdminController = async (req: Request, res: Response) =>
     message: ` order: ${orderId} cancelled successfully`,
     data: cancelOrder,
   });
+}
+
+export const sendOrderContoller =  async (req: Request, res: Response) => {
+  const {user_id} = res.locals.payload
+  const {orderId} = req.params
+
+  const order = await sendOrderService ({user_id, orderId})
+
+  const responseData = {
+      orderId: order.id,
+      status: order.status,
+      updatedAt: order.updatedAt,
+      shipment: order.Shipment
+        ?{
+            courier: order.Shipment.courier,
+            service: order.Shipment.service,
+            shipping_cost: order.Shipment.shippingCost,
+            shipping_days: order.Shipment.shippingDays,
+            shipped_at: order.Shipment.createdAt, 
+            city_name : order.Shipment.cityName,
+            district_name : order.Shipment.districtName,
+            address : order.Shipment.address
+          }
+        : null,
+    };
+
+  return res.status(200).json({
+    message: `Order : ${orderId} are shippig to the costumer`,
+    data : responseData
+  })
 }
 
 export const getOrderStatusLogController = async (req: Request, res: Response) => {

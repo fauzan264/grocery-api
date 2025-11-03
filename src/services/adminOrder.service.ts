@@ -1,6 +1,6 @@
 
 import { prisma } from "../db/connection";
-import { Order, OrderStatus, UserRole } from "../generated/prisma";
+import { Order, OrderStatus, StockRequestStatus, UserRole } from "../generated/prisma";
 
 export const getAllOrdersAdminService = async ({
   user_id, 
@@ -388,6 +388,130 @@ export const getOrderStatusLogsService = async (userId:string, orderId: string) 
   });
 };
 
-export const sendOrderService = async () => {
-  
-}
+export const sendOrderService = async ({
+  user_id,
+  orderId,
+}: {
+  user_id: string;
+  orderId: string;
+}) => {
+  return await prisma.$transaction(async (tx) => {
+    const order = await tx.order.findUnique({
+      where: { id: orderId },
+      include: {
+        store: { select: { id: true, name: true } },
+        Shipment : {
+          select : {
+            courier : true,
+            service : true,
+            shippingCost : true,
+            shippingDays : true,
+            createdAt : true,
+            cityName: true,
+            districtName: true,
+            address: true
+          }
+        },
+        OrderItems: {
+          include: {
+            product: {
+              select: { id: true, name: true, stocks : true },
+            },
+          },
+        },
+      },
+    });
+
+    if (!order) throw { message: "Order not found", isExpose: true };
+
+    if (order.status !== OrderStatus.IN_PROCESS) {
+      throw {
+        message: `Order with status ${order.status} cannot be sent.`,
+        isExpose: true,
+      };
+    }
+
+    for (const item of order.OrderItems) {
+    const localStockRecord = item.product.stocks.find(
+      (s) => s.storeId === order.store.id
+    );
+
+    let localQuantity = 0;
+    if (localStockRecord) {
+      const lastHistory = await prisma.stockHistory.findFirst({
+        where: { stockId: localStockRecord.id },
+        orderBy: { createdAt: "desc" },
+      });
+
+      localQuantity = lastHistory?.quantityOld ?? localStockRecord.quantity;
+    }
+
+    const needGlobalStockRequest = localQuantity < item.quantity;
+
+    if (needGlobalStockRequest) {
+      const error = new Error(
+        `Stock not sufficient for product "${item.product.name}" in store "${order.store.name}".`
+      );
+      (error as any).isExpose = true;
+      throw error;
+    }
+  }
+
+    const stockRequests = await tx.stockRequest.findMany({
+      where: { orderId },
+      select: { id: true, status: true },
+    });
+
+    if (stockRequests.length > 0) {
+      const hasPending = stockRequests.some(
+        (req) => req.status !== StockRequestStatus.COMPLETED
+      );
+      if (hasPending) {
+        throw {
+          message:
+            "Some stock requests for this order are still pending or incomplete.",
+          isExpose: true,
+        };
+      }
+    }
+
+    const admin = await tx.user.findUnique({
+      where: { id: user_id },
+      select: { fullName: true },
+    });
+    if (!admin) throw { message: "Admin not found", isExpose: true };
+
+    const updatedOrder = await tx.order.update({
+      where: { id: orderId },
+      data: {
+        status: OrderStatus.DELIVERED,
+      },
+      include: {
+        Shipment : {
+          select : {
+            courier : true,
+            service : true,
+            shippingCost : true,
+            shippingDays : true,
+            createdAt : true,
+            cityName: true,
+            districtName: true,
+            address: true
+          }
+        },
+      }
+    });
+
+    await tx.orderStatusLog.create({
+      data: {
+        orderId,
+        oldStatus: order.status,
+        newStatus: OrderStatus.DELIVERED,
+        changedBy: `ADMIN (${admin.fullName})`,
+        note: `The order is currently being shipped to the customer`,
+      },
+    });
+
+    return updatedOrder;
+  });
+};

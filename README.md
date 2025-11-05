@@ -14,6 +14,7 @@ Backend API for an grocery application built with Express.js, TypeScript, Prisma
 - [Database Schema](#database-schema)
 - [Cron Jobs](#cron-jobs)
 - [Middleware](#middleware)
+- [Documentation](#documentation)
 
 ## Key Features
 
@@ -100,6 +101,11 @@ Backend API for an grocery application built with Express.js, TypeScript, Prisma
 
 ```
 backend/
+├── docs/                     # Documentation
+│   └── api-docs/            # API documentation
+│       ├── grocery.postman_collection.json  # Postman collection
+│       ├── README.md        # API documentation guide
+│       └── dbdiagram.md     # Database diagram
 ├── src/
 │   ├── controllers/          # Route controllers
 │   ├── db/                   # Database connection
@@ -368,6 +374,8 @@ Database uses Prisma ORM with PostgreSQL. Main schemas include:
 
 See `prisma/schema.prisma` file for complete schema details.
 
+For a visual representation of the database schema, refer to the [Database Diagram](./docs/api-docs/dbdiagram.md).
+
 ## Cron Jobs
 
 The application runs automated tasks using node-cron:
@@ -445,3 +453,33 @@ Email templates use Handlebars and are located in `src/public/`:
 
 - `verify-email.html` - Email verification template
 - `reset-password.html` - Password reset template
+
+## Documentation
+
+Complete API documentation is available in the `docs/api-docs/` directory:
+
+### API Documentation
+
+For detailed information about API endpoints, request/response formats, and testing:
+
+- **[API Documentation Guide](./docs/api-docs/README.md)** - Comprehensive guide for setting up and using the API with Postman
+- **[Postman Collection](./docs/api-docs/grocery.postman_collection.json)** - Import this file into Postman for ready-to-use API requests
+
+### Database Documentation
+
+- **[Database Diagram](./docs/api-docs/dbdiagram.md)** - Visual representation of database schema and relationships
+
+### Quick Start with API Testing
+
+1. Import the Postman collection from `docs/api-docs/grocery.postman_collection.json`
+2. Follow the setup guide in `docs/api-docs/README.md` to configure environment variables
+3. Start testing the API endpoints immediately
+
+The API documentation includes:
+
+- Complete endpoint listings organized by feature
+- Authentication setup and token management
+- Request/response examples
+- Environment configuration
+- Troubleshooting guide
+- Role-based testing scenarios

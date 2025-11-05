@@ -132,12 +132,12 @@ export const getOrderDetailController = async (req: Request, res: Response) => {
      shipment: {
       courier: order?.Shipment?.courier,
       service: order?.Shipment?.service,
-      shippingCost: order?.Shipment?.shippingCost,
-      shippingDays: order?.Shipment?.shippingDays,
+      shipping_cost: order?.Shipment?.shippingCost,
+      shipping_days: order?.Shipment?.shippingDays,
       address: order?.Shipment?.address,
-      provinceName: order?.Shipment?.provinceName,
-      cityName: order?.Shipment?.cityName,
-      districtName: order?.Shipment?.districtName,
+      province_name: order?.Shipment?.provinceName,
+      city_name: order?.Shipment?.cityName,
+      district_name: order?.Shipment?.districtName,
     },
     totalItems: order?.OrderItems.reduce((acc, item) => acc + item.quantity, 0),
   };

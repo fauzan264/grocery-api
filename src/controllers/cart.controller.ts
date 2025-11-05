@@ -5,6 +5,8 @@ export const addtoCartController = async (req:Request, res:Response) => {
     const { user_id} = res.locals.payload;
     const { productId, quantity} = req.body;
 
+    
+
     const Cart = await AddtoCartService ({
         user_id,
         productId,
@@ -58,9 +60,11 @@ export const deleteCartController = async (req: Request, res: Response)  => {
 }
 
 export const getCartItemsController = async (req: Request, res: Response) => {
-  const { userId } = res.locals.payload;
+  const { user_id } = res.locals.payload;
 
-  const cart = await getCartItemsService(userId);
+  console.log ("user", user_id)
+
+  const cart = await getCartItemsService({userId : user_id});
 
 
   return res.status(200).json({

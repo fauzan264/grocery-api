@@ -2,6 +2,7 @@ import { prisma } from "../db/connection";
 import { OrderStatus, PaymentMethod } from "../generated/prisma";
 import { IOrderResult } from "../types/order";
 import { IShipment } from "../types/shipment";
+import { generateCode } from "../utils/generateOrderNumber";
 import { validateAndCalculateDiscounts } from "./discount.service";
 import { gatewayPaymentService } from "./payment.service";
 import { getGlobalStock } from "./stock.service";
@@ -102,9 +103,12 @@ export const createOrderService = async (
       expiredAt = null;
     }
 
+    const orderNumber = generateCode('ORD-')
+
     const order = await tx.order.create({
       data: {
         userId,
+        number : orderNumber,
         storeId,
         totalPrice,
         discountTotal: discountAmount,
@@ -359,10 +363,10 @@ export const getOrderDetailService = async (
 
 export const getOrdersByUserIdService = async (
   userId: string,
-  filters?: { orderId?: string; startDate?: string; endDate?: string },
+  filters?: { number?: string; startDate?: string; endDate?: string },
   pagination?: { page?: number; limit?: number }
 ) => {
-  const { orderId, startDate, endDate } = filters || {};
+  const { number, startDate, endDate } = filters || {};
   const { page = 1, limit = 10 } = pagination || {};
 
   const start = startDate ? new Date(startDate) : undefined;
@@ -374,7 +378,7 @@ export const getOrdersByUserIdService = async (
 
   const whereClause = {
     userId,
-    ...(orderId ? { id: orderId } : {}),
+    ...(number ? { number } : {}),
     ...(start && end ? { createdAt: { gte: start, lte: end } } : {}),
   };
 

@@ -62,9 +62,10 @@ export const getPublicProductByIDController = async (
   req: Request,
   res: Response
 ) => {
-  const { id } = req.params;
 
-  const product = await getPublicProductByIDService({ id });
+  const { product_id, store_id } = req.params;
+
+  const product = await getPublicProductByIDService({ storeId: store_id, productId: product_id });
 
   res.status(200).json({
     success: true,

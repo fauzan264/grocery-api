@@ -10,7 +10,20 @@ dotenv.config();
 
 const app: Express = express();
 app.use(express.json());
-app.use(cors());
+const allowedOrigins = process.env.CORS_ALLOWED_ORIGINS?.split(",") || [];
+
+const corsOptions: cors.CorsOptions = {
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
 const port = 4000;
 
 app.use(mainRouter);
@@ -25,8 +38,8 @@ app.use((error: any, req: Request, res: Response, next: NextFunction) => {
   });
 });
 
-expiryTransactionSchedule()
-confirmTransactionSchedule()
+expiryTransactionSchedule();
+confirmTransactionSchedule();
 
 app.listen(port, () => {
   console.log(`⚡️ Server is running on port ${port}`);

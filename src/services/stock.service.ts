@@ -236,6 +236,7 @@ export async function createStockRequestService(
 
   const existingPending = await prisma.stockRequest.findFirst({
     where: {
+      orderId,
       productId,
       storeId,
       status: "PENDING",

@@ -108,6 +108,7 @@ export const getOrderDetailController = async (req: Request, res: Response) => {
 
   const orderDetail = {
     id: order?.id,
+    order_number : order?.number,
     paymentMethod: order?.paymentMethod,
     status: order?.status,
     sub_total: order?.totalPrice,
@@ -153,7 +154,7 @@ export const getOrdersByUserController = async (
   res: Response
 ) => {
   const { user_id } = res.locals.payload;
-  const { orderId, startDate, endDate, page = "1", limit = "10" } = req.query;
+  const { number, startDate, endDate, page = "1", limit = "10" } = req.query;
 
   const userId = user_id;
   
@@ -161,7 +162,7 @@ export const getOrdersByUserController = async (
   const { orders, total } = await getOrdersByUserIdService(
     userId,
     {
-      orderId: orderId as string,
+      number: number as string,
       startDate: startDate as string,
       endDate: endDate as string,
     },
@@ -170,6 +171,7 @@ export const getOrdersByUserController = async (
 
   const orderList = orders.map((order) => ({
     id: order.id,
+    order_number: order.number,
     storeId: order.storeId,
     status: order.status,
     sub_total: order.totalPrice,

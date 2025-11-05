@@ -169,12 +169,11 @@ export const getPublicProductsService = async ({
   return snakecaseKeys(response, { deep: true });
 };
 
-export const getPublicProductByIDService = async ({ id }: { id: string }) => {
+export const getPublicProductByIDService = async ({ productId, storeId }: {productId: string, storeId: string }) => {
   const product = await prisma.stock.findFirst({
     where: {
-      product: {
-        id,
-      },
+      storeId,
+      productId
     },
     select: {
       product: {

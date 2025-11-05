@@ -2101,7 +2101,7 @@
 							"basic": [
 								{
 									"key": "username",
-									"value": "Mid-server-Qdc_k5z_pxKzLpEh1iCq0X3C",
+									"value": "{{midtrans_username}}",
 									"type": "string"
 								}
 							]
@@ -2144,7 +2144,7 @@
 							"basic": [
 								{
 									"key": "username",
-									"value": "Mid-server-Qdc_k5z_pxKzLpEh1iCq0X3C",
+									"value": "{{midtrans_username}}",
 									"type": "string"
 								}
 							]
@@ -3186,8 +3186,11 @@
 		},
 		{
 			"key": "int_base_url",
-			"value": "",
-			"type": "default"
+			"value": ""
+		},
+		{
+			"key": "midtrans_username",
+			"value": ""
 		}
 	]
 }

@@ -9,10 +9,21 @@ import {
   getStoreByIdService,
   updateStoreService,
 } from "../services/store.service";
+import { camelCase } from "text-camel-case";
 
 export const getAllStoreController = async (req: Request, res: Response) => {
-  let { name, province, province_id, city, district, status, page, limit } =
-    req.query;
+  let {
+    name,
+    province,
+    province_id,
+    city,
+    district,
+    status,
+    page,
+    limit,
+    sort_by,
+    sort_order,
+  } = req.query;
 
   const stores = await getAllStoreService({
     name: name ? String(name) : undefined,
@@ -23,6 +34,9 @@ export const getAllStoreController = async (req: Request, res: Response) => {
     status: status ? String(status) : undefined,
     page: page ? Number(page) : undefined,
     limit: limit ? Number(limit) : undefined,
+    sortBy: sort_by ? camelCase(String(sort_by)) : undefined,
+    sortOrder:
+      sort_order === "asc" || sort_order === "desc" ? sort_order : undefined,
   });
 
   res.status(200).json({

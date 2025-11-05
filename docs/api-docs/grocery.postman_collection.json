@@ -635,7 +635,7 @@
 								"method": "GET",
 								"header": [],
 								"url": {
-									"raw": "{{base_url}}/users/:user_id/addresses",
+									"raw": "{{base_url}}/users/:user_id/addresses?sort_by=is_default&sort_order=asc",
 									"host": [
 										"{{base_url}}"
 									],
@@ -643,6 +643,28 @@
 										"users",
 										":user_id",
 										"addresses"
+									],
+									"query": [
+										{
+											"key": "search",
+											"value": null,
+											"disabled": true
+										},
+										{
+											"key": "province_id",
+											"value": null,
+											"disabled": true
+										},
+										{
+											"key": "sort_by",
+											"value": "is_default",
+											"description": "is_default"
+										},
+										{
+											"key": "sort_order",
+											"value": "asc",
+											"description": "asc,desc"
+										}
 									],
 									"variable": [
 										{
@@ -966,6 +988,11 @@
 								{
 									"key": "name",
 									"value": null
+								},
+								{
+									"key": "is_available",
+									"value": null,
+									"disabled": true
 								}
 							]
 						}
@@ -1502,7 +1529,7 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{base_url}}/stores?name&city=&district=&status&page&limit=1&province_id",
+							"raw": "{{base_url}}/stores?sort_by=name&sort_order=desc",
 							"host": [
 								"{{base_url}}"
 							],
@@ -1512,7 +1539,8 @@
 							"query": [
 								{
 									"key": "name",
-									"value": null
+									"value": "",
+									"disabled": true
 								},
 								{
 									"key": "province",
@@ -1521,27 +1549,43 @@
 								},
 								{
 									"key": "city",
-									"value": ""
+									"value": "",
+									"disabled": true
 								},
 								{
 									"key": "district",
-									"value": ""
+									"value": "",
+									"disabled": true
 								},
 								{
 									"key": "status",
-									"value": null
+									"value": "",
+									"disabled": true
 								},
 								{
 									"key": "page",
-									"value": null
+									"value": "",
+									"disabled": true
 								},
 								{
 									"key": "limit",
-									"value": "1"
+									"value": "1",
+									"disabled": true
 								},
 								{
 									"key": "province_id",
-									"value": null
+									"value": "5",
+									"disabled": true
+								},
+								{
+									"key": "sort_by",
+									"value": "name",
+									"description": "name, created_at, updated_at, status"
+								},
+								{
+									"key": "sort_order",
+									"value": "desc",
+									"description": "asc, desc"
 								}
 							]
 						}

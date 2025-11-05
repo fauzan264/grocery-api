@@ -13,6 +13,8 @@ export interface IGetAllStoreServiceProps {
   status?: string | undefined;
   page?: number | undefined;
   limit?: number | undefined;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
 }
 
 export interface ICreateStoreServiceProps

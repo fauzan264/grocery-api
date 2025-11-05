@@ -102,11 +102,15 @@ export const getMyAddressesService = async ({
   search,
   page,
   limit,
+  sortBy = "createdAt",
+  sortOrder = "desc",
 }: Pick<User, "id"> & {
   provinceId?: number | undefined;
   search: string | undefined;
   page?: number | undefined;
   limit?: number | undefined;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
 }) => {
   const where: any = {
     userId: id,
@@ -130,6 +134,20 @@ export const getMyAddressesService = async ({
   const limitNumber = Math.max(Number(limit) || 10, 1);
   const offset = (pageNumber - 1) * limitNumber;
 
+  const allowedSortFields = ["isDefault", "createdAt", "updatedAt"];
+
+  // Validasi sortBy
+  const validSortBy = allowedSortFields.includes(sortBy) ? sortBy : "createdAt";
+
+  // Validasi sortOrder
+  const validSortOrder =
+    sortOrder === "asc" || sortOrder === "desc" ? sortOrder : "desc";
+
+  // Build orderBy object
+  const orderBy: any = {
+    [validSortBy]: validSortOrder,
+  };
+
   const totalData = await prisma.userAddress.count({
     where: Object.keys(where).length > 0 ? where : undefined,
   });
@@ -140,6 +158,7 @@ export const getMyAddressesService = async ({
     where: Object.keys(where).length > 0 ? where : {},
     skip: offset,
     take: limitNumber,
+    orderBy: orderBy,
     select: {
       id: true,
       address: true,

@@ -15,6 +15,7 @@ import {
   updateAddressesService,
   updateMyProfileService,
 } from "../services/user.service";
+import { camelCase } from "text-camel-case";
 
 export const getMyProfileController = async (req: Request, res: Response) => {
   const { user_id } = res.locals.payload;
@@ -53,12 +54,15 @@ export const updateMyProfileController = async (
 
 export const getMyAddressesController = async (req: Request, res: Response) => {
   const { user_id } = res.locals.payload;
-  const { province_id, search } = req.query;
+  const { province_id, search, sort_by, sort_order } = req.query;
 
   const addresses = await getMyAddressesService({
     id: user_id,
     search: search ? String(search) : undefined,
     provinceId: province_id ? Number(province_id) : undefined,
+    sortBy: sort_by ? camelCase(String(sort_by)) : undefined,
+    sortOrder:
+      sort_order === "asc" || sort_order === "desc" ? sort_order : undefined,
   });
 
   res.status(200).json({

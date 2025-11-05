@@ -21,6 +21,8 @@ export const getAllStoreService = async ({
   status,
   page,
   limit,
+  sortBy = "createdAt",
+  sortOrder = "desc",
 }: IGetAllStoreServiceProps) => {
   const where: any = {
     deletedAt: null,
@@ -80,6 +82,20 @@ export const getAllStoreService = async ({
   const limitNumber = Math.max(Number(limit) || 10, 1);
   const offset = (pageNumber - 1) * limitNumber;
 
+  const allowedSortFields = ["name", "createdAt", "updatedAt", "status"];
+
+  // Validasi sortBy
+  const validSortBy = allowedSortFields.includes(sortBy) ? sortBy : "createdAt";
+
+  // Validasi sortOrder
+  const validSortOrder =
+    sortOrder === "asc" || sortOrder === "desc" ? sortOrder : "desc";
+
+  // Build orderBy object
+  const orderBy: any = {
+    [validSortBy]: validSortOrder,
+  };
+
   const totalData = await prisma.store.count({
     where: Object.keys(where).length > 0 ? where : undefined,
   });
@@ -90,9 +106,7 @@ export const getAllStoreService = async ({
     where: Object.keys(where).length > 0 ? where : {},
     skip: offset,
     take: limitNumber,
-    orderBy: {
-      createdAt: "desc",
-    },
+    orderBy: orderBy,
     select: {
       id: true,
       name: true,
@@ -123,12 +137,12 @@ export const getAllStoreService = async ({
     },
   });
 
-  stores.map((store) => {
-    snakecaseKeys(store);
-  });
+  const transformedStores = stores.map((store) =>
+    snakecaseKeys(store, { deep: true })
+  );
 
   const response = {
-    stores,
+    stores: transformedStores,
     pagination: {
       current_page: pageNumber,
       per_page: limitNumber,
